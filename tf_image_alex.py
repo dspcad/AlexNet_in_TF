@@ -9,6 +9,7 @@ from skimage import transform
 from skimage import color
 import tensorflow as tf
 from multiprocessing.pool import ThreadPool
+import time
 #import matplotlib.pyplot as plt
 
 def cropImg(target_img):
@@ -47,7 +48,6 @@ def cropImg(target_img):
 
 
 def batchCroppedImgRead(thread_name, dirpath, image_name, partial_batch_idx):
-  VGG_MEAN = [123.69, 116.779, 103.939]
   #print "%s is cropping the images..." % thread_name
   img_batch = []
 
@@ -99,7 +99,6 @@ def batchRead(image_name, class_dict, mean_img, pool):
 
   #img_batch = batchCroppedImgRead("Thread-0", dirpath, image_name, batch_idx)
 
-
   async_result_0 = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, image_name, batch_idx[:int(mini_batch/8)]))
   async_result_1 = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, image_name, batch_idx[int(mini_batch/8):int(2*mini_batch/8)]))
   async_result_2 = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, image_name, batch_idx[int(2*mini_batch/8):int(3*mini_batch/8)]))
@@ -128,6 +127,7 @@ def batchRead(image_name, class_dict, mean_img, pool):
   img_batch = np.vstack((img_batch, return_val_7))
  
    
+
   #async_result_0  = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, image_name, batch_idx[:int(mini_batch/16)]))
   #async_result_1  = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, image_name, batch_idx[int(mini_batch/16):int(2*mini_batch/16)]))
   #async_result_2  = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, image_name, batch_idx[int(2*mini_batch/16):int(3*mini_batch/16)]))
@@ -145,7 +145,6 @@ def batchRead(image_name, class_dict, mean_img, pool):
   #async_result_14 = pool.apply_async(batchCroppedImgRead, ("Thread-6", dirpath, image_name, batch_idx[int(14*mini_batch/16):int(15*mini_batch/16)]))
   #async_result_15 = pool.apply_async(batchCroppedImgRead, ("Thread-7", dirpath, image_name, batch_idx[int(15*mini_batch/16):]))
 
-
   #img_batch     = async_result_0.get()
   #return_val_1  = async_result_1.get()
   #return_val_2  = async_result_2.get()
@@ -162,8 +161,6 @@ def batchRead(image_name, class_dict, mean_img, pool):
   #return_val_13 = async_result_13.get()
   #return_val_14 = async_result_14.get()
   #return_val_15 = async_result_15.get()
-
-
 
   #img_batch = np.vstack((img_batch, return_val_1))
   #img_batch = np.vstack((img_batch, return_val_2))
@@ -195,6 +192,60 @@ def batchRead(image_name, class_dict, mean_img, pool):
 
   img_batch = img_batch - mean_img
   return img_batch, train_y
+
+
+def setAsynBatchRead(image_name, class_dict, pool):
+  batch_idx = np.random.randint(0,len(image_name),mini_batch)
+  dirpath = '/home/hhwu/ImageNet/train/'
+
+
+  #convert to one hot labels
+  train_y = np.zeros((mini_batch,K))
+  for i in range(0, len(batch_idx)):
+    image_class_name = image_name[batch_idx[i]].split("_")[0]
+    train_y[i][int(class_dict[image_class_name])] = 1
+
+
+
+  async_result_0 = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, image_name, batch_idx[:int(mini_batch/8)]))
+  async_result_1 = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, image_name, batch_idx[int(mini_batch/8):int(2*mini_batch/8)]))
+  async_result_2 = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, image_name, batch_idx[int(2*mini_batch/8):int(3*mini_batch/8)]))
+  async_result_3 = pool.apply_async(batchCroppedImgRead, ("Thread-3", dirpath, image_name, batch_idx[int(3*mini_batch/8):int(4*mini_batch/8)]))
+  async_result_4 = pool.apply_async(batchCroppedImgRead, ("Thread-4", dirpath, image_name, batch_idx[int(4*mini_batch/8):int(5*mini_batch/8)]))
+  async_result_5 = pool.apply_async(batchCroppedImgRead, ("Thread-5", dirpath, image_name, batch_idx[int(5*mini_batch/8):int(6*mini_batch/8)]))
+  async_result_6 = pool.apply_async(batchCroppedImgRead, ("Thread-6", dirpath, image_name, batch_idx[int(6*mini_batch/8):int(7*mini_batch/8)]))
+  async_result_7 = pool.apply_async(batchCroppedImgRead, ("Thread-7", dirpath, image_name, batch_idx[int(7*mini_batch/8):]))
+
+  return async_result_0, async_result_1, async_result_2, async_result_3, async_result_4, async_result_5, async_result_6, async_result_7, train_y
+
+
+def getAsynBatchRead(async_result_0, async_result_1, async_result_2, async_result_3, async_result_4, async_result_5, async_result_6, async_result_7):
+  asyn_img_batch = async_result_0.get()
+  return_val_1   = async_result_1.get()
+  return_val_2   = async_result_2.get()
+  return_val_3   = async_result_3.get()
+  return_val_4   = async_result_4.get()
+  return_val_5   = async_result_5.get()
+  return_val_6   = async_result_6.get()
+  return_val_7   = async_result_7.get()
+
+
+  asyn_img_batch = np.vstack((asyn_img_batch, return_val_1))
+  asyn_img_batch = np.vstack((asyn_img_batch, return_val_2))
+  asyn_img_batch = np.vstack((asyn_img_batch, return_val_3))
+  asyn_img_batch = np.vstack((asyn_img_batch, return_val_4))
+  asyn_img_batch = np.vstack((asyn_img_batch, return_val_5))
+  asyn_img_batch = np.vstack((asyn_img_batch, return_val_6))
+  asyn_img_batch = np.vstack((asyn_img_batch, return_val_7))
+ 
+  
+  asyn_img_batch = asyn_img_batch.reshape(mini_batch,224,224,3)
+  asyn_img_batch = asyn_img_batch - mean_img
+
+  return asyn_img_batch
+
+
+
 
 
 def loadClassName(filename):
@@ -239,7 +290,7 @@ if __name__ == '__main__':
 
   class_dict, image_name  = loadClassName('synset.csv')
 
-  pool = ThreadPool(processes=16)
+  pool = ThreadPool(processes=8)
   print "Multi-threads begin!"
 
 
@@ -372,18 +423,28 @@ if __name__ == '__main__':
 
   with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
+
+    x, y = batchRead(image_name, class_dict, mean_img, pool)
     for itr in xrange(1000000):
-      x, y = batchRead(image_name, class_dict, mean_img, pool)
+      #x, y = batchRead(image_name, class_dict, mean_img, pool)
+
+
       #print y
+      #start_time = time.time()
+      asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7, asyn_train_y = setAsynBatchRead(image_name, class_dict, pool)
       train_step.run(feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
+      x = getAsynBatchRead(asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7)
+      y = asyn_train_y
+      #elapsed_time = time.time() - start_time
+      #print "Time for async read and training: %f" % elapsed_time
       
 
       #print train_step
  
       #print "W9:"
       #print sess.run(W9) 
-      #if itr % 5 == 0:
-      print "Iter %d:  learning rate: %f  dropout: (%.1f %.1f) cross entropy: %f  accuracy: %f" % (itr,
+      if itr % 10 == 0:
+        print "Iter %d:  learning rate: %f  dropout: (%.1f %.1f) cross entropy: %f  accuracy: %f" % (itr,
                                                                 learning_rate.eval(feed_dict={X: x, Y_: y, 
                                                                                               keep_prob_1: DROPOUT_PROB_1, 
                                                                                               keep_prob_2: DROPOUT_PROB_2}),
