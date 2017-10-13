@@ -212,6 +212,7 @@ def batchRead(image_name, class_dict, mean_img, pool):
 
 def setAsynBatchRead(image_name, class_dict, pool, mean_img):
   batch_idx = np.random.randint(0,len(image_name),mini_batch)
+  #batch_idx = np.arange(mini_batch)
   dirpath = '/mnt/ramdisk/crop_train/'
 
 
@@ -316,14 +317,14 @@ if __name__ == '__main__':
   mini_batch = 128
 
   K = 1000 # number of classes
-  NUM_FILTER_1 = 48
-  NUM_FILTER_2 = 128
-  NUM_FILTER_3 = 192
-  NUM_FILTER_4 = 192
-  NUM_FILTER_5 = 128
+  NUM_FILTER_1 = 96
+  NUM_FILTER_2 = 256
+  NUM_FILTER_3 = 384
+  NUM_FILTER_4 = 384
+  NUM_FILTER_5 = 256
 
-  NUM_NEURON_1 = 2048
-  NUM_NEURON_2 = 2048
+  NUM_NEURON_1 = 4096
+  NUM_NEURON_2 = 4096
 
   DROPOUT_PROB_1 = 1.00
   DROPOUT_PROB_2 = 1.00
@@ -337,29 +338,40 @@ if __name__ == '__main__':
   keep_prob_1 = tf.placeholder(tf.float32)
   keep_prob_2 = tf.placeholder(tf.float32)
 
+
   # initialize parameters randomly
   X  = tf.placeholder(tf.float32, shape=[None, 224,224,3])
   Y_ = tf.placeholder(tf.float32, shape=[None,K])
 
 
-  W1  = tf.Variable(tf.truncated_normal([11,11,3,NUM_FILTER_1], stddev=0.01))
-  W2  = tf.Variable(tf.truncated_normal([5,5,NUM_FILTER_1,NUM_FILTER_2], stddev=0.01))
-  W3  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2,NUM_FILTER_3], stddev=0.01))
-  W4  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_3,NUM_FILTER_4], stddev=0.01))
-  W5  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_4,NUM_FILTER_5], stddev=0.01))
-  W6 = tf.Variable(tf.truncated_normal([6*6*NUM_FILTER_5,NUM_NEURON_1], stddev=0.01))
-  W7 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=0.01))
-  W8 = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=0.01))
+  W1 = tf.get_variable("W1", shape=[11,11,3,NUM_FILTER_1], initializer=tf.contrib.layers.xavier_initializer())
+  W2 = tf.get_variable("W2", shape=[5,5,NUM_FILTER_1,NUM_FILTER_2], initializer=tf.contrib.layers.xavier_initializer())
+  W3 = tf.get_variable("W3", shape=[3,3,NUM_FILTER_2,NUM_FILTER_3], initializer=tf.contrib.layers.xavier_initializer())
+  W4 = tf.get_variable("W4", shape=[3,3,NUM_FILTER_3,NUM_FILTER_4], initializer=tf.contrib.layers.xavier_initializer())
+  W5 = tf.get_variable("W5", shape=[3,3,NUM_FILTER_4,NUM_FILTER_5], initializer=tf.contrib.layers.xavier_initializer())
+  W6 = tf.get_variable("W6", shape=[6*6*NUM_FILTER_5,NUM_NEURON_1], initializer=tf.contrib.layers.xavier_initializer())
+  W7 = tf.get_variable("W7", shape=[NUM_NEURON_1,NUM_NEURON_2], initializer=tf.contrib.layers.xavier_initializer())
+  W8 = tf.get_variable("W8", shape=[NUM_NEURON_2,K], initializer=tf.contrib.layers.xavier_initializer())
 
 
-  b1  = tf.Variable(tf.ones([NUM_FILTER_1]))
-  b2  = tf.Variable(tf.zeros([NUM_FILTER_2]))
-  b3  = tf.Variable(tf.ones([NUM_FILTER_3]))
-  b4  = tf.Variable(tf.zeros([NUM_FILTER_4]))
-  b5  = tf.Variable(tf.zeros([NUM_FILTER_5]))
-  b6 = tf.Variable(tf.ones([NUM_NEURON_1]))
-  b7 = tf.Variable(tf.ones([NUM_NEURON_2]))
-  b8 = tf.Variable(tf.ones([K]))
+  #W1  = tf.Variable(tf.truncated_normal([11,11,3,NUM_FILTER_1], stddev=0.01))
+  #W2  = tf.Variable(tf.truncated_normal([5,5,NUM_FILTER_1,NUM_FILTER_2], stddev=0.01))
+  #W3  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2,NUM_FILTER_3], stddev=0.01))
+  #W4  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_3,NUM_FILTER_4], stddev=0.01))
+  #W5  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_4,NUM_FILTER_5], stddev=0.01))
+  #W6 = tf.Variable(tf.truncated_normal([6*6*NUM_FILTER_5,NUM_NEURON_1], stddev=0.01))
+  #W7 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=0.01))
+  #W8 = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=0.01))
+
+
+  b1 = tf.Variable(tf.ones([NUM_FILTER_1])/10)
+  b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
+  b3 = tf.Variable(tf.ones([NUM_FILTER_3])/10)
+  b4 = tf.Variable(tf.ones([NUM_FILTER_4])/10)
+  b5 = tf.Variable(tf.ones([NUM_FILTER_5])/10)
+  b6 = tf.Variable(tf.ones([NUM_NEURON_1])/10)
+  b7 = tf.Variable(tf.ones([NUM_NEURON_2])/10)
+  b8 = tf.Variable(tf.ones([K])/10)
 
 
   #===== architecture =====#
