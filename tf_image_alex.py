@@ -12,11 +12,12 @@ from multiprocessing.pool import ThreadPool
 import time
 #import matplotlib.pyplot as plt
 
-def cropImg(target_img, mean_img):
+def cropImg(target_img):
   ###############################
   #       shape[0]: height      #
   #       shape[1]: width       #
   ###############################
+  mean_pixel = [123.182570556, 116.282672124, 103.462011796]
 
   #Grayscale Img and convert it to RGB
   if len(target_img.shape) == 2:
@@ -43,18 +44,23 @@ def cropImg(target_img, mean_img):
   #  target_img = target_img[offset:256+offset, :, :]
 
 
-  target_img = target_img - mean_img
+  target_img[:,:,0] = target_img[:,:,0] - mean_pixel[0]
+  target_img[:,:,1] = target_img[:,:,1] - mean_pixel[1]
+  target_img[:,:,2] = target_img[:,:,2] - mean_pixel[2]
 
-  reflection   = np.random.randint(0,2)
-  if reflection == 0:
-    target_img = np.fliplr(target_img)
-
-
+  
   ###############################
   #      Data Augementation     #
   ###############################
-  height_shift = np.random.randint(0,256-224)
-  width_shift  = np.random.randint(0,256-224)
+  #reflection   = np.random.randint(0,2)
+  #if reflection == 0:
+  #  target_img = np.fliplr(target_img)
+
+
+  #height_shift = np.random.randint(0,256-224)
+  #width_shift  = np.random.randint(0,256-224)
+  height_shift = 16
+  width_shift  = 16
 
   target_img = target_img[height_shift:height_shift+224, width_shift:width_shift+224,:]
 
@@ -62,7 +68,7 @@ def cropImg(target_img, mean_img):
   return target_img
 
 
-def batchCroppedImgRead(thread_name, dirpath, image_name, mean_img, partial_batch_idx):
+def batchCroppedImgRead(thread_name, dirpath, image_name, partial_batch_idx):
   #print "%s is cropping the images..." % thread_name
   img_batch = []
 
@@ -73,7 +79,7 @@ def batchCroppedImgRead(thread_name, dirpath, image_name, mean_img, partial_batc
     #################################
     # convert RGB from float to int #
     #################################
-    croppedImg = cropImg(target_img, mean_img)
+    croppedImg = cropImg(target_img)
     #croppedImg = cropImg(target_img, mean_img)*255
     #croppedImg = croppedImg.astype('uint8') 
     #croppedImg[:,:,0] = croppedImg[:,:,0] - VGG_MEAN[0]
@@ -93,9 +99,9 @@ def batchCroppedImgRead(thread_name, dirpath, image_name, mean_img, partial_batc
 
   return img_batch
 
-def batchRead(image_name, class_dict, mean_img, pool):
-
-  batch_idx = np.random.randint(0,len(image_name),mini_batch)
+def batchRead(image_name, class_dict, pool):
+  batch_idx = np.random.randint(0, len(image_name), size=mini_batch)
+  #print batch_idx
   #batch_idx = np.arange(mini_batch)
   #dirpath = '/home/hhwu/ImageNet/train/'
   dirpath = '/mnt/ramdisk/crop_train/'
@@ -115,14 +121,14 @@ def batchRead(image_name, class_dict, mean_img, pool):
 
   #img_batch = batchCroppedImgRead("Thread-0", dirpath, image_name, batch_idx)
 
-  async_result_0 = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, image_name, mean_img, batch_idx[:int(mini_batch/8)]))
-  async_result_1 = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, image_name, mean_img, batch_idx[int(mini_batch/8):int(2*mini_batch/8)]))
-  async_result_2 = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, image_name, mean_img, batch_idx[int(2*mini_batch/8):int(3*mini_batch/8)]))
-  async_result_3 = pool.apply_async(batchCroppedImgRead, ("Thread-3", dirpath, image_name, mean_img, batch_idx[int(3*mini_batch/8):int(4*mini_batch/8)]))
-  async_result_4 = pool.apply_async(batchCroppedImgRead, ("Thread-4", dirpath, image_name, mean_img, batch_idx[int(4*mini_batch/8):int(5*mini_batch/8)]))
-  async_result_5 = pool.apply_async(batchCroppedImgRead, ("Thread-5", dirpath, image_name, mean_img, batch_idx[int(5*mini_batch/8):int(6*mini_batch/8)]))
-  async_result_6 = pool.apply_async(batchCroppedImgRead, ("Thread-6", dirpath, image_name, mean_img, batch_idx[int(6*mini_batch/8):int(7*mini_batch/8)]))
-  async_result_7 = pool.apply_async(batchCroppedImgRead, ("Thread-7", dirpath, image_name, mean_img, batch_idx[int(7*mini_batch/8):]))
+  async_result_0 = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, image_name, batch_idx[:int(mini_batch/8)]))
+  async_result_1 = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, image_name, batch_idx[int(mini_batch/8):int(2*mini_batch/8)]))
+  async_result_2 = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, image_name, batch_idx[int(2*mini_batch/8):int(3*mini_batch/8)]))
+  async_result_3 = pool.apply_async(batchCroppedImgRead, ("Thread-3", dirpath, image_name, batch_idx[int(3*mini_batch/8):int(4*mini_batch/8)]))
+  async_result_4 = pool.apply_async(batchCroppedImgRead, ("Thread-4", dirpath, image_name, batch_idx[int(4*mini_batch/8):int(5*mini_batch/8)]))
+  async_result_5 = pool.apply_async(batchCroppedImgRead, ("Thread-5", dirpath, image_name, batch_idx[int(5*mini_batch/8):int(6*mini_batch/8)]))
+  async_result_6 = pool.apply_async(batchCroppedImgRead, ("Thread-6", dirpath, image_name, batch_idx[int(6*mini_batch/8):int(7*mini_batch/8)]))
+  async_result_7 = pool.apply_async(batchCroppedImgRead, ("Thread-7", dirpath, image_name, batch_idx[int(7*mini_batch/8):]))
 
   img_batch    = async_result_0.get()
   return_val_1 = async_result_1.get()
@@ -210,8 +216,10 @@ def batchRead(image_name, class_dict, mean_img, pool):
   return img_batch, train_y
 
 
-def setAsynBatchRead(image_name, class_dict, pool, mean_img):
-  batch_idx = np.random.randint(0,len(image_name),mini_batch)
+def setAsynBatchRead(image_name, class_dict, pool):
+  batch_idx = np.random.randint(0, len(image_name), size=mini_batch)
+  #print batch_idx
+
   #batch_idx = np.arange(mini_batch)
   dirpath = '/mnt/ramdisk/crop_train/'
 
@@ -224,14 +232,14 @@ def setAsynBatchRead(image_name, class_dict, pool, mean_img):
 
 
 
-  async_result_0 = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, image_name, mean_img, batch_idx[:int(mini_batch/8)]))
-  async_result_1 = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, image_name, mean_img, batch_idx[int(mini_batch/8):int(2*mini_batch/8)]))
-  async_result_2 = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, image_name, mean_img, batch_idx[int(2*mini_batch/8):int(3*mini_batch/8)]))
-  async_result_3 = pool.apply_async(batchCroppedImgRead, ("Thread-3", dirpath, image_name, mean_img, batch_idx[int(3*mini_batch/8):int(4*mini_batch/8)]))
-  async_result_4 = pool.apply_async(batchCroppedImgRead, ("Thread-4", dirpath, image_name, mean_img, batch_idx[int(4*mini_batch/8):int(5*mini_batch/8)]))
-  async_result_5 = pool.apply_async(batchCroppedImgRead, ("Thread-5", dirpath, image_name, mean_img, batch_idx[int(5*mini_batch/8):int(6*mini_batch/8)]))
-  async_result_6 = pool.apply_async(batchCroppedImgRead, ("Thread-6", dirpath, image_name, mean_img, batch_idx[int(6*mini_batch/8):int(7*mini_batch/8)]))
-  async_result_7 = pool.apply_async(batchCroppedImgRead, ("Thread-7", dirpath, image_name, mean_img, batch_idx[int(7*mini_batch/8):]))
+  async_result_0 = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, image_name, batch_idx[:int(mini_batch/8)]))
+  async_result_1 = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, image_name, batch_idx[int(mini_batch/8):int(2*mini_batch/8)]))
+  async_result_2 = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, image_name, batch_idx[int(2*mini_batch/8):int(3*mini_batch/8)]))
+  async_result_3 = pool.apply_async(batchCroppedImgRead, ("Thread-3", dirpath, image_name, batch_idx[int(3*mini_batch/8):int(4*mini_batch/8)]))
+  async_result_4 = pool.apply_async(batchCroppedImgRead, ("Thread-4", dirpath, image_name, batch_idx[int(4*mini_batch/8):int(5*mini_batch/8)]))
+  async_result_5 = pool.apply_async(batchCroppedImgRead, ("Thread-5", dirpath, image_name, batch_idx[int(5*mini_batch/8):int(6*mini_batch/8)]))
+  async_result_6 = pool.apply_async(batchCroppedImgRead, ("Thread-6", dirpath, image_name, batch_idx[int(6*mini_batch/8):int(7*mini_batch/8)]))
+  async_result_7 = pool.apply_async(batchCroppedImgRead, ("Thread-7", dirpath, image_name, batch_idx[int(7*mini_batch/8):]))
 
   return async_result_0, async_result_1, async_result_2, async_result_3, async_result_4, async_result_5, async_result_6, async_result_7, train_y
 
@@ -297,13 +305,14 @@ def loadClassName(filename):
 if __name__ == '__main__':
   print '===== Start loading the mean of ILSVRC2012 ====='
 
-  fo = open('mean.bin', 'rb')
-  mean_img = cPickle.load(fo)
-  fo.close()
-  print mean_img
+  #fo = open('mean.bin', 'rb')
+  #mean_img = cPickle.load(fo)
+  #fo.close()
+  #print mean_img
   #mean_img = mean_img*255
   #mean_img = mean_img.astype('uint8')
 
+  np.random.seed(31)
 
   class_dict, image_name  = loadClassName('synset.csv')
 
@@ -314,7 +323,7 @@ if __name__ == '__main__':
   #########################################
   #  Configuration of CNN architecture    #
   #########################################
-  mini_batch = 128
+  mini_batch = 256
 
   K = 1000 # number of classes
   NUM_FILTER_1 = 96
@@ -331,12 +340,12 @@ if __name__ == '__main__':
 
   LEARNING_RATE = 1e-2
  
-  reg = 1e-3 # regularization strength
+  reg = 1e-5 # regularization strength
 
 
   # Dropout probability
-  keep_prob_1 = tf.placeholder(tf.float32)
-  keep_prob_2 = tf.placeholder(tf.float32)
+  #keep_prob_1 = tf.placeholder(tf.float32)
+  #keep_prob_2 = tf.placeholder(tf.float32)
 
 
   # initialize parameters randomly
@@ -432,10 +441,6 @@ if __name__ == '__main__':
   #train_step = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
 
 
-  # Restore variables from disk.
-  #saver.restore(sess, "./checkpoint/model_2990000.ckpt")
-  #print("Model restored.")
-
   #te_x, te_y = batchTestRead(te_data10, te_labels10)
   print '  Start training... '
   idx_start = 0
@@ -451,15 +456,20 @@ if __name__ == '__main__':
   with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
 
-    x, y = batchRead(image_name, class_dict, mean_img, pool)
+    # Restore variables from disk.
+    saver.restore(sess, "./checkpoint/model_289000.ckpt")
+    print("Model restored.")
+
+
+    x, y = batchRead(image_name, class_dict, pool)
     for itr in xrange(1000000):
       #x, y = batchRead(image_name, class_dict, mean_img, pool)
 
 
       #print y
-      asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7, asyn_train_y = setAsynBatchRead(image_name, class_dict, pool, mean_img)
+      asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7, asyn_train_y = setAsynBatchRead(image_name, class_dict, pool)
       #start_time = time.time()
-      train_step.run(feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
+      train_step.run(feed_dict={X: x, Y_: y})
       #elapsed_time = time.time() - start_time
       #print "Time for async read and training: %f" % elapsed_time
       x = getAsynBatchRead(asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7)
@@ -472,17 +482,11 @@ if __name__ == '__main__':
       #print sess.run(W9) 
       if itr % 10 == 0:
         print "Iter %d:  learning rate: %f  dropout: (%.1f %.1f) cross entropy: %f  accuracy: %f" % (itr,
-                                                                learning_rate.eval(feed_dict={X: x, Y_: y, 
-                                                                                              keep_prob_1: DROPOUT_PROB_1, 
-                                                                                              keep_prob_2: DROPOUT_PROB_2}),
+                                                                learning_rate.eval(feed_dict={X: x, Y_: y}),
                                                                 DROPOUT_PROB_1,
                                                                 DROPOUT_PROB_2,
-                                                                cross_entropy.eval(feed_dict={X: x, Y_: y, 
-                                                                                                            keep_prob_1: DROPOUT_PROB_1, 
-                                                                                                            keep_prob_2: DROPOUT_PROB_2}),
-                                                                accuracy.eval(feed_dict={X: x, Y_: y, 
-                                                                                                       keep_prob_1: DROPOUT_PROB_1, 
-                                                                                                       keep_prob_2: DROPOUT_PROB_2}))
+                                                                cross_entropy.eval(feed_dict={X: x, Y_: y}),
+                                                                accuracy.eval(feed_dict={X: x, Y_: y}))
 
       if itr % 1000 == 0 and itr != 0:
         model_name = "./checkpoint/model_%d.ckpt" % itr
