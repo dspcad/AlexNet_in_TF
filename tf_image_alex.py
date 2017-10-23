@@ -18,6 +18,8 @@ def cropImg(target_img):
   #       shape[1]: width       #
   ###############################
   mean_pixel = [123.182570556, 116.282672124, 103.462011796]
+  floating_img = np.empty(target_img.shape, dtype=np.float32)
+
 
   #Grayscale Img and convert it to RGB
   if len(target_img.shape) == 2:
@@ -43,12 +45,16 @@ def cropImg(target_img):
   #  target_img = transform.resize(target_img, (height,256,3))
   #  target_img = target_img[offset:256+offset, :, :]
 
+  #target_img = target_img.astype(float) 
+  #target_img[:,:,0] = target_img[:,:,0] - mean_pixel[0]
+  #target_img[:,:,1] = target_img[:,:,1] - mean_pixel[1]
+  #target_img[:,:,2] = target_img[:,:,2] - mean_pixel[2]
 
-  target_img[:,:,0] = target_img[:,:,0] - mean_pixel[0]
-  target_img[:,:,1] = target_img[:,:,1] - mean_pixel[1]
-  target_img[:,:,2] = target_img[:,:,2] - mean_pixel[2]
+  floating_img[:,:,0] = target_img[:,:,0] - mean_pixel[0]
+  floating_img[:,:,1] = target_img[:,:,1] - mean_pixel[1]
+  floating_img[:,:,2] = target_img[:,:,2] - mean_pixel[2]
 
-  
+ 
   ###############################
   #      Data Augementation     #
   ###############################
@@ -62,9 +68,10 @@ def cropImg(target_img):
   height_shift = 16
   width_shift  = 16
 
-  target_img = target_img[height_shift:height_shift+224, width_shift:width_shift+224,:]
+  target_img = floating_img[height_shift:height_shift+224, width_shift:width_shift+224,:]
 
 
+  #print target_img
   return target_img
 
 
@@ -344,8 +351,8 @@ if __name__ == '__main__':
 
 
   # Dropout probability
-  #keep_prob_1 = tf.placeholder(tf.float32)
-  #keep_prob_2 = tf.placeholder(tf.float32)
+  keep_prob_1 = tf.placeholder(tf.float32)
+  keep_prob_2 = tf.placeholder(tf.float32)
 
 
   # initialize parameters randomly
@@ -369,8 +376,8 @@ if __name__ == '__main__':
   #W4  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_3,NUM_FILTER_4], stddev=0.01))
   #W5  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_4,NUM_FILTER_5], stddev=0.01))
   #W6 = tf.Variable(tf.truncated_normal([6*6*NUM_FILTER_5,NUM_NEURON_1], stddev=0.01))
-  #W7 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=0.01))
-  #W8 = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=0.01))
+  #W7 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=0.005))
+  #W8 = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=0.001))
 
 
   b1 = tf.Variable(tf.ones([NUM_FILTER_1])/10)
@@ -384,28 +391,29 @@ if __name__ == '__main__':
 
 
   #===== architecture =====#
-  conv1 = tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,4,4,1], padding='SAME')+b1)
-  norm1 = tf.nn.lrn(conv1, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
-  pool1 = tf.nn.max_pool(norm1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
+  with tf.device('/gpu:0'):
+    conv1 = tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,4,4,1], padding='SAME')+b1)
+    norm1 = tf.nn.lrn(conv1, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+    pool1 = tf.nn.max_pool(norm1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
-  conv2 = tf.nn.relu(tf.nn.conv2d(pool1, W2, strides=[1,1,1,1], padding='SAME')+b2)
-  norm2 = tf.nn.lrn(conv2, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
-  pool2 = tf.nn.max_pool(norm2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
+    conv2 = tf.nn.relu(tf.nn.conv2d(pool1, W2, strides=[1,1,1,1], padding='SAME')+b2)
+    norm2 = tf.nn.lrn(conv2, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+    pool2 = tf.nn.max_pool(norm2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
-  conv3 = tf.nn.relu(tf.nn.conv2d(pool2, W3, strides=[1,1,1,1], padding='SAME')+b3)
-  conv4 = tf.nn.relu(tf.nn.conv2d(conv3, W4, strides=[1,1,1,1], padding='SAME')+b4)
-  conv5 = tf.nn.relu(tf.nn.conv2d(conv4, W5, strides=[1,1,1,1], padding='SAME')+b5)
-  pool5 = tf.nn.max_pool(conv5, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
+    conv3 = tf.nn.relu(tf.nn.conv2d(pool2, W3, strides=[1,1,1,1], padding='SAME')+b3)
+    conv4 = tf.nn.relu(tf.nn.conv2d(conv3, W4, strides=[1,1,1,1], padding='SAME')+b4)
+    conv5 = tf.nn.relu(tf.nn.conv2d(conv4, W5, strides=[1,1,1,1], padding='SAME')+b5)
+    pool5 = tf.nn.max_pool(conv5, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
-  YY = tf.reshape(pool5, shape=[-1,6*6*NUM_FILTER_5])
+    YY = tf.reshape(pool5, shape=[-1,6*6*NUM_FILTER_5])
 
-  fc1 = tf.nn.relu(tf.matmul(YY,W6)+b6)
-  #fc1_drop = tf.nn.dropout(fc1, keep_prob_1)
+    fc1 = tf.nn.relu(tf.matmul(YY,W6)+b6)
+    fc1_drop = tf.nn.dropout(fc1, keep_prob_1)
 
-  fc2 = tf.nn.relu(tf.matmul(fc1,W7)+b7)
-  #fc2_drop = tf.nn.dropout(fc2, keep_prob_1)
+    fc2 = tf.nn.relu(tf.matmul(fc1_drop,W7)+b7)
+    fc2_drop = tf.nn.dropout(fc2, keep_prob_1)
 
-  Y  = tf.nn.softmax(tf.matmul(fc2,W8)+b8)
+    Y  = tf.nn.softmax(tf.matmul(fc2_drop,W8)+b8)
 
 
 
@@ -457,8 +465,8 @@ if __name__ == '__main__':
     sess.run(tf.global_variables_initializer())
 
     # Restore variables from disk.
-    saver.restore(sess, "./checkpoint/model_289000.ckpt")
-    print("Model restored.")
+    #saver.restore(sess, "./checkpoint/model_3000.ckpt")
+    #print("Model restored.")
 
 
     x, y = batchRead(image_name, class_dict, pool)
@@ -469,7 +477,7 @@ if __name__ == '__main__':
       #print y
       asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7, asyn_train_y = setAsynBatchRead(image_name, class_dict, pool)
       #start_time = time.time()
-      train_step.run(feed_dict={X: x, Y_: y})
+      train_step.run(feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
       #elapsed_time = time.time() - start_time
       #print "Time for async read and training: %f" % elapsed_time
       x = getAsynBatchRead(asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7)
@@ -482,11 +490,11 @@ if __name__ == '__main__':
       #print sess.run(W9) 
       if itr % 10 == 0:
         print "Iter %d:  learning rate: %f  dropout: (%.1f %.1f) cross entropy: %f  accuracy: %f" % (itr,
-                                                                learning_rate.eval(feed_dict={X: x, Y_: y}),
-                                                                DROPOUT_PROB_1,
-                                                                DROPOUT_PROB_2,
-                                                                cross_entropy.eval(feed_dict={X: x, Y_: y}),
-                                                                accuracy.eval(feed_dict={X: x, Y_: y}))
+                                                        learning_rate.eval(feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2}),
+                                                        DROPOUT_PROB_1,
+                                                        DROPOUT_PROB_2,
+                                                        cross_entropy.eval(feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2}),
+                                                        accuracy.eval(feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2}))
 
       if itr % 1000 == 0 and itr != 0:
         model_name = "./checkpoint/model_%d.ckpt" % itr
