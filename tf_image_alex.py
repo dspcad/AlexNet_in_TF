@@ -12,6 +12,45 @@ from multiprocessing.pool import ThreadPool
 import time
 #import matplotlib.pyplot as plt
 
+def _variable_on_cpu(name, shape, initializer):
+  """Helper to create a Variable stored on CPU memory.
+  Args:
+    name: name of the variable
+    shape: list of ints
+    initializer: initializer for Variable
+  Returns:
+    Variable Tensor
+  """
+  with tf.device('/cpu:0'):
+    var = tf.get_variable(name, shape, initializer=initializer)
+  return var
+
+
+def _variable_with_weight_decay(name, shape, stddev, wd):
+  """Helper to create an initialized Variable with weight decay.
+  Note that the Variable is initialized with a truncated normal distribution.
+  A weight decay is added only if one is specified.
+  Args:
+    name: name of the variable
+    shape: list of ints
+    stddev: standard deviation of a truncated Gaussian
+    wd: add L2Loss weight decay multiplied by this float. If None, weight
+        decay is not added for this Variable.
+  Returns:
+    Variable Tensor
+  """
+  #dtype = tf.float16 if FLAGS.use_fp16 else tf.float32
+  dtype = tf.float32
+  var = _variable_on_cpu(
+      name,
+      shape,
+      tf.truncated_normal_initializer(stddev=stddev, dtype=dtype))
+  if wd is not None:
+    weight_decay = tf.multiply(tf.nn.l2_loss(var), wd, name='weight_loss')
+    tf.add_to_collection('losses', weight_decay)
+  return var
+
+
 def cropImg(target_img):
   ###############################
   #       shape[0]: height      #
@@ -20,56 +59,32 @@ def cropImg(target_img):
   mean_pixel = [123.182570556, 116.282672124, 103.462011796]
   floating_img = np.empty(target_img.shape, dtype=np.float32)
 
-
   #Grayscale Img and convert it to RGB
   if len(target_img.shape) == 2:
     target_img = color.gray2rgb(target_img)
 
 
-  #if target_img.shape[0] < target_img.shape[1]:
-  #  width = int(target_img.shape[1]*256/target_img.shape[0])
-  #  #if width < 224:
-  #  #  width = 224
-
-  #  offset = int((width-256)/2)
-
-  #  target_img = transform.resize(target_img, (256,width,3))
-  #  target_img = target_img[:, offset:256+offset, :]
-  #else:
-  #  height = int(target_img.shape[0]*256/target_img.shape[1])
-  #  #if height < 224:
-  #  #  height = 224
-
-  #  offset = int((height-256)/2)
-
-  #  target_img = transform.resize(target_img, (height,256,3))
-  #  target_img = target_img[offset:256+offset, :, :]
-
-  #target_img = target_img.astype(float) 
-  #target_img[:,:,0] = target_img[:,:,0] - mean_pixel[0]
-  #target_img[:,:,1] = target_img[:,:,1] - mean_pixel[1]
-  #target_img[:,:,2] = target_img[:,:,2] - mean_pixel[2]
-
   floating_img[:,:,0] = target_img[:,:,0] - mean_pixel[0]
   floating_img[:,:,1] = target_img[:,:,1] - mean_pixel[1]
   floating_img[:,:,2] = target_img[:,:,2] - mean_pixel[2]
 
- 
-  ###############################
-  #      Data Augementation     #
-  ###############################
+
+  #target_img = target_img - mean_img
+
   #reflection   = np.random.randint(0,2)
   #if reflection == 0:
   #  target_img = np.fliplr(target_img)
 
 
+  ################################
+  ##      Data Augementation     #
+  ################################
   #height_shift = np.random.randint(0,256-224)
   #width_shift  = np.random.randint(0,256-224)
+
   height_shift = 16
   width_shift  = 16
-
   target_img = floating_img[height_shift:height_shift+224, width_shift:width_shift+224,:]
-
 
   #print target_img
   return target_img
@@ -87,12 +102,6 @@ def batchCroppedImgRead(thread_name, dirpath, image_name, partial_batch_idx):
     # convert RGB from float to int #
     #################################
     croppedImg = cropImg(target_img)
-    #croppedImg = cropImg(target_img, mean_img)*255
-    #croppedImg = croppedImg.astype('uint8') 
-    #croppedImg[:,:,0] = croppedImg[:,:,0] - VGG_MEAN[0]
-    #croppedImg[:,:,1] = croppedImg[:,:,1] - VGG_MEAN[1]
-    #croppedImg[:,:,2] = croppedImg[:,:,2] - VGG_MEAN[2]
-    #io.imsave("%s_%d_%d.%s" % ("crop_img", i, int(class_dict[image_class_name]), 'jpeg'), target_img)
 
     image_class_name = image_name[i].split("_")[0]
     if len(img_batch) == 0:
@@ -100,15 +109,12 @@ def batchCroppedImgRead(thread_name, dirpath, image_name, partial_batch_idx):
     else:
       img_batch = np.vstack((img_batch, croppedImg))
 
-  #test_img_batch = img_batch.reshape(len(partial_batch_idx),224,224,3)
-  #for i in range(0,len(partial_batch_idx)):
-  #  io.imsave("%s_%d.%s" % ("crop_img", partial_batch_idx[i], 'jpeg'), test_img_batch[i])
 
   return img_batch
 
 def batchRead(image_name, class_dict, pool):
-  batch_idx = np.random.randint(0, len(image_name), size=mini_batch)
-  #print batch_idx
+
+  batch_idx = np.random.randint(0,len(image_name),mini_batch)
   #batch_idx = np.arange(mini_batch)
   #dirpath = '/home/hhwu/ImageNet/train/'
   dirpath = '/mnt/ramdisk/crop_train/'
@@ -157,77 +163,15 @@ def batchRead(image_name, class_dict, pool):
  
    
 
-  #async_result_0  = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, image_name, batch_idx[:int(mini_batch/16)]))
-  #async_result_1  = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, image_name, batch_idx[int(mini_batch/16):int(2*mini_batch/16)]))
-  #async_result_2  = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, image_name, batch_idx[int(2*mini_batch/16):int(3*mini_batch/16)]))
-  #async_result_3  = pool.apply_async(batchCroppedImgRead, ("Thread-3", dirpath, image_name, batch_idx[int(3*mini_batch/16):int(4*mini_batch/16)]))
-  #async_result_4  = pool.apply_async(batchCroppedImgRead, ("Thread-4", dirpath, image_name, batch_idx[int(4*mini_batch/16):int(5*mini_batch/16)]))
-  #async_result_5  = pool.apply_async(batchCroppedImgRead, ("Thread-5", dirpath, image_name, batch_idx[int(5*mini_batch/16):int(6*mini_batch/16)]))
-  #async_result_6  = pool.apply_async(batchCroppedImgRead, ("Thread-6", dirpath, image_name, batch_idx[int(6*mini_batch/16):int(7*mini_batch/16)]))
-  #async_result_7  = pool.apply_async(batchCroppedImgRead, ("Thread-7", dirpath, image_name, batch_idx[int(7*mini_batch/16):int(8*mini_batch/16)]))
-  #async_result_8  = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, image_name, batch_idx[int(8*mini_batch/16):int(9*mini_batch/16)]))
-  #async_result_9  = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, image_name, batch_idx[int(9*mini_batch/16):int(10*mini_batch/16)]))
-  #async_result_10 = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, image_name, batch_idx[int(10*mini_batch/16):int(11*mini_batch/16)]))
-  #async_result_11 = pool.apply_async(batchCroppedImgRead, ("Thread-3", dirpath, image_name, batch_idx[int(11*mini_batch/16):int(12*mini_batch/16)]))
-  #async_result_12 = pool.apply_async(batchCroppedImgRead, ("Thread-4", dirpath, image_name, batch_idx[int(12*mini_batch/16):int(13*mini_batch/16)]))
-  #async_result_13 = pool.apply_async(batchCroppedImgRead, ("Thread-5", dirpath, image_name, batch_idx[int(13*mini_batch/16):int(14*mini_batch/16)]))
-  #async_result_14 = pool.apply_async(batchCroppedImgRead, ("Thread-6", dirpath, image_name, batch_idx[int(14*mini_batch/16):int(15*mini_batch/16)]))
-  #async_result_15 = pool.apply_async(batchCroppedImgRead, ("Thread-7", dirpath, image_name, batch_idx[int(15*mini_batch/16):]))
-
-  #img_batch     = async_result_0.get()
-  #return_val_1  = async_result_1.get()
-  #return_val_2  = async_result_2.get()
-  #return_val_3  = async_result_3.get()
-  #return_val_4  = async_result_4.get()
-  #return_val_5  = async_result_5.get()
-  #return_val_6  = async_result_6.get()
-  #return_val_7  = async_result_7.get()
-  #return_val_8  = async_result_8.get()
-  #return_val_9  = async_result_9.get()
-  #return_val_10 = async_result_10.get()
-  #return_val_11 = async_result_11.get()
-  #return_val_12 = async_result_12.get()
-  #return_val_13 = async_result_13.get()
-  #return_val_14 = async_result_14.get()
-  #return_val_15 = async_result_15.get()
-
-  #img_batch = np.vstack((img_batch, return_val_1))
-  #img_batch = np.vstack((img_batch, return_val_2))
-  #img_batch = np.vstack((img_batch, return_val_3))
-  #img_batch = np.vstack((img_batch, return_val_4))
-  #img_batch = np.vstack((img_batch, return_val_5))
-  #img_batch = np.vstack((img_batch, return_val_6))
-  #img_batch = np.vstack((img_batch, return_val_7))
-  #img_batch = np.vstack((img_batch, return_val_8))
-  #img_batch = np.vstack((img_batch, return_val_9))
-  #img_batch = np.vstack((img_batch, return_val_10))
-  #img_batch = np.vstack((img_batch, return_val_11))
-  #img_batch = np.vstack((img_batch, return_val_12))
-  #img_batch = np.vstack((img_batch, return_val_13))
-  #img_batch = np.vstack((img_batch, return_val_14))
-  #img_batch = np.vstack((img_batch, return_val_15))
- 
   
   img_batch = img_batch.reshape(mini_batch,224,224,3)
-
-  #for i in range(0, mini_batch):
-  #  io.imsave("%s_%d.%s" % ("test_img", i, 'jpeg'), img_batch[i])
-  #print img_batch[0]
-  #print class_dict
-
-
-  #return img_batch, label_batch
-  #return img_batch, train_y
 
   #img_batch = img_batch - mean_img
   return img_batch, train_y
 
 
 def setAsynBatchRead(image_name, class_dict, pool):
-  batch_idx = np.random.randint(0, len(image_name), size=mini_batch)
-  #print batch_idx
-
-  #batch_idx = np.arange(mini_batch)
+  batch_idx = np.random.randint(0,len(image_name),mini_batch)
   dirpath = '/mnt/ramdisk/crop_train/'
 
 
@@ -312,15 +256,6 @@ def loadClassName(filename):
 if __name__ == '__main__':
   print '===== Start loading the mean of ILSVRC2012 ====='
 
-  #fo = open('mean.bin', 'rb')
-  #mean_img = cPickle.load(fo)
-  #fo.close()
-  #print mean_img
-  #mean_img = mean_img*255
-  #mean_img = mean_img.astype('uint8')
-
-  np.random.seed(31)
-
   class_dict, image_name  = loadClassName('synset.csv')
 
   pool = ThreadPool(processes=8)
@@ -333,11 +268,11 @@ if __name__ == '__main__':
   mini_batch = 256
 
   K = 1000 # number of classes
-  NUM_FILTER_1 = 96
-  NUM_FILTER_2 = 256
-  NUM_FILTER_3 = 384
-  NUM_FILTER_4 = 384
-  NUM_FILTER_5 = 256
+  NUM_FILTER_1 = 48
+  NUM_FILTER_2 = 128
+  NUM_FILTER_3 = 192
+  NUM_FILTER_4 = 192
+  NUM_FILTER_5 = 128
 
   NUM_NEURON_1 = 4096
   NUM_NEURON_2 = 4096
@@ -347,73 +282,166 @@ if __name__ == '__main__':
 
   LEARNING_RATE = 1e-2
  
-  reg = 1e-5 # regularization strength
+  reg = 0 # regularization strength
 
 
   # Dropout probability
   keep_prob_1 = tf.placeholder(tf.float32)
   keep_prob_2 = tf.placeholder(tf.float32)
 
-
   # initialize parameters randomly
   X  = tf.placeholder(tf.float32, shape=[None, 224,224,3])
   Y_ = tf.placeholder(tf.float32, shape=[None,K])
 
 
-  W1 = tf.get_variable("W1", shape=[11,11,3,NUM_FILTER_1], initializer=tf.contrib.layers.xavier_initializer())
-  W2 = tf.get_variable("W2", shape=[5,5,NUM_FILTER_1,NUM_FILTER_2], initializer=tf.contrib.layers.xavier_initializer())
-  W3 = tf.get_variable("W3", shape=[3,3,NUM_FILTER_2,NUM_FILTER_3], initializer=tf.contrib.layers.xavier_initializer())
-  W4 = tf.get_variable("W4", shape=[3,3,NUM_FILTER_3,NUM_FILTER_4], initializer=tf.contrib.layers.xavier_initializer())
-  W5 = tf.get_variable("W5", shape=[3,3,NUM_FILTER_4,NUM_FILTER_5], initializer=tf.contrib.layers.xavier_initializer())
-  W6 = tf.get_variable("W6", shape=[6*6*NUM_FILTER_5,NUM_NEURON_1], initializer=tf.contrib.layers.xavier_initializer())
-  W7 = tf.get_variable("W7", shape=[NUM_NEURON_1,NUM_NEURON_2], initializer=tf.contrib.layers.xavier_initializer())
-  W8 = tf.get_variable("W8", shape=[NUM_NEURON_2,K], initializer=tf.contrib.layers.xavier_initializer())
+  W1_1  = _variable_with_weight_decay('W1_1', shape=[11, 11, 3, NUM_FILTER_1], stddev=1e-2, wd=5e-4)
+  W1_2  = _variable_with_weight_decay('W1_2', shape=[11, 11, 3, NUM_FILTER_1], stddev=1e-2, wd=5e-4)
+
+  W2_1  = _variable_with_weight_decay('W2_1', shape=[5, 5, NUM_FILTER_1,NUM_FILTER_2], stddev=1e-2, wd=5e-4)
+  W2_2  = _variable_with_weight_decay('W2_2', shape=[5, 5, NUM_FILTER_1,NUM_FILTER_2], stddev=1e-2, wd=5e-4)
+
+  W3_1  = _variable_with_weight_decay('W3_1', shape=[3, 3, NUM_FILTER_2*2,NUM_FILTER_3], stddev=1e-2, wd=5e-4)
+  W3_2  = _variable_with_weight_decay('W3_2', shape=[3, 3, NUM_FILTER_2*2,NUM_FILTER_3], stddev=1e-2, wd=5e-4)
+
+  W4_1  = _variable_with_weight_decay('W4_1', shape=[3, 3, NUM_FILTER_3,NUM_FILTER_4], stddev=1e-2, wd=5e-4)
+  W4_2  = _variable_with_weight_decay('W4_2', shape=[3, 3, NUM_FILTER_3,NUM_FILTER_4], stddev=1e-2, wd=5e-4)
+
+  W5_1  = _variable_with_weight_decay('W5_1', shape=[3, 3, NUM_FILTER_4,NUM_FILTER_5], stddev=1e-2, wd=5e-4)
+  W5_2  = _variable_with_weight_decay('W5_2', shape=[3, 3, NUM_FILTER_4,NUM_FILTER_5], stddev=1e-2, wd=5e-4)
+
+  W6    = _variable_with_weight_decay('W6', shape=[6*6*NUM_FILTER_5*2,NUM_NEURON_1], stddev=5e-3, wd=5e-4)
+
+  W7    = _variable_with_weight_decay('W7', shape=[NUM_NEURON_1,NUM_NEURON_2], stddev=5e-3, wd=5e-4)
+
+  W8    = _variable_with_weight_decay('W8', shape=[NUM_NEURON_2,K], stddev=1e-2, wd=5e-4)
+  
+
+  #W1_1  = tf.Variable(tf.truncated_normal([11,11,3,NUM_FILTER_1], stddev=0.01))
+  #W1_2  = tf.Variable(tf.truncated_normal([11,11,3,NUM_FILTER_1], stddev=0.01))
+
+  #W2_1  = tf.Variable(tf.truncated_normal([5,5,NUM_FILTER_1,NUM_FILTER_2], stddev=0.01))
+  #W2_2  = tf.Variable(tf.truncated_normal([5,5,NUM_FILTER_1,NUM_FILTER_2], stddev=0.01))
+
+  #W3_1  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2*2,NUM_FILTER_3], stddev=0.01))
+  #W3_2  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2*2,NUM_FILTER_3], stddev=0.01))
+
+  #W4_1  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_3,NUM_FILTER_4], stddev=0.01))
+  #W4_2  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_3,NUM_FILTER_4], stddev=0.01))
+
+  #W5_1  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_4,NUM_FILTER_5], stddev=0.01))
+  #W5_2  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_4,NUM_FILTER_5], stddev=0.01))
+
+  #W6_1 = tf.Variable(tf.truncated_normal([6*6*NUM_FILTER_5*2,NUM_NEURON_1], stddev=0.01))
+  #W6_2 = tf.Variable(tf.truncated_normal([6*6*NUM_FILTER_5*2,NUM_NEURON_1], stddev=0.01))
+
+  #W7_1 = tf.Variable(tf.truncated_normal([NUM_NEURON_1*2,NUM_NEURON_2], stddev=0.01))
+  #W7_2 = tf.Variable(tf.truncated_normal([NUM_NEURON_1*2,NUM_NEURON_2], stddev=0.01))
+
+  #W8 = tf.Variable(tf.truncated_normal([NUM_NEURON_2*2,K], stddev=0.01))
 
 
-  #W1  = tf.Variable(tf.truncated_normal([11,11,3,NUM_FILTER_1], stddev=0.01))
-  #W2  = tf.Variable(tf.truncated_normal([5,5,NUM_FILTER_1,NUM_FILTER_2], stddev=0.01))
-  #W3  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2,NUM_FILTER_3], stddev=0.01))
-  #W4  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_3,NUM_FILTER_4], stddev=0.01))
-  #W5  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_4,NUM_FILTER_5], stddev=0.01))
-  #W6 = tf.Variable(tf.truncated_normal([6*6*NUM_FILTER_5,NUM_NEURON_1], stddev=0.01))
-  #W7 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=0.005))
-  #W8 = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=0.001))
+  #W1_1 = tf.get_variable("W1_1", shape=[11,11,3,NUM_FILTER_1], initializer=tf.contrib.layers.xavier_initializer())
+  #W1_2 = tf.get_variable("W1_2", shape=[11,11,3,NUM_FILTER_1], initializer=tf.contrib.layers.xavier_initializer())
+
+  #W2_1 = tf.get_variable("W2_1", shape=[5,5,NUM_FILTER_1,NUM_FILTER_2], initializer=tf.contrib.layers.xavier_initializer())
+  #W2_2 = tf.get_variable("W2_2", shape=[5,5,NUM_FILTER_1,NUM_FILTER_2], initializer=tf.contrib.layers.xavier_initializer())
+
+  #W3_1 = tf.get_variable("W3_1", shape=[3,3,NUM_FILTER_2*2,NUM_FILTER_3], initializer=tf.contrib.layers.xavier_initializer())
+  #W3_2 = tf.get_variable("W3_2", shape=[3,3,NUM_FILTER_2*2,NUM_FILTER_3], initializer=tf.contrib.layers.xavier_initializer())
+
+  #W4_1 = tf.get_variable("W4_1", shape=[3,3,NUM_FILTER_3,NUM_FILTER_4], initializer=tf.contrib.layers.xavier_initializer())
+  #W4_2 = tf.get_variable("W4_2", shape=[3,3,NUM_FILTER_3,NUM_FILTER_4], initializer=tf.contrib.layers.xavier_initializer())
+
+  #W5_1 = tf.get_variable("W5_1", shape=[3,3,NUM_FILTER_4,NUM_FILTER_5], initializer=tf.contrib.layers.xavier_initializer())
+  #W5_2 = tf.get_variable("W5_2", shape=[3,3,NUM_FILTER_4,NUM_FILTER_5], initializer=tf.contrib.layers.xavier_initializer())
+
+  #W6_1 = tf.get_variable("W6_1", shape=[6*6*NUM_FILTER_5*2,NUM_NEURON_1], initializer=tf.contrib.layers.xavier_initializer())
+  #W6_2 = tf.get_variable("W6_2", shape=[6*6*NUM_FILTER_5*2,NUM_NEURON_1], initializer=tf.contrib.layers.xavier_initializer())
+
+  #W7_1 = tf.get_variable("W7_1", shape=[NUM_NEURON_1*2,NUM_NEURON_2], initializer=tf.contrib.layers.xavier_initializer())
+  #W7_2 = tf.get_variable("W7_2", shape=[NUM_NEURON_1*2,NUM_NEURON_2], initializer=tf.contrib.layers.xavier_initializer())
+
+  #W8 = tf.get_variable("W8", shape=[NUM_NEURON_2*2,K], initializer=tf.contrib.layers.xavier_initializer())
 
 
-  b1 = tf.Variable(tf.ones([NUM_FILTER_1])/10)
-  b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
-  b3 = tf.Variable(tf.ones([NUM_FILTER_3])/10)
-  b4 = tf.Variable(tf.ones([NUM_FILTER_4])/10)
-  b5 = tf.Variable(tf.ones([NUM_FILTER_5])/10)
-  b6 = tf.Variable(tf.ones([NUM_NEURON_1])/10)
-  b7 = tf.Variable(tf.ones([NUM_NEURON_2])/10)
-  b8 = tf.Variable(tf.ones([K])/10)
+
+  b1_1 = tf.Variable(tf.zeros([NUM_FILTER_1]))
+  b1_2 = tf.Variable(tf.zeros([NUM_FILTER_1]))
+
+  b2_1 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
+  b2_2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
+
+  b3_1 = tf.Variable(tf.zeros([NUM_FILTER_3]))
+  b3_2 = tf.Variable(tf.zeros([NUM_FILTER_3]))
+
+  b4_1 = tf.Variable(tf.ones([NUM_FILTER_4])/10)
+  b4_2 = tf.Variable(tf.ones([NUM_FILTER_4])/10)
+
+  b5_1 = tf.Variable(tf.ones([NUM_FILTER_5])/10)
+  b5_2 = tf.Variable(tf.ones([NUM_FILTER_5])/10)
+
+  b6   = tf.Variable(tf.ones([NUM_NEURON_1])/10)
+
+  b7   = tf.Variable(tf.ones([NUM_NEURON_2])/10)
+
+  b8 = tf.Variable(tf.zeros([K]))
+
+  ##########################
+  #      Architecture      #
+  ##########################
+  #===== Layer 1 =====#
+  conv1_1 = tf.nn.relu(tf.nn.conv2d(X,  W1_1, strides=[1,4,4,1], padding='SAME')+b1_1)
+  norm1_1 = tf.nn.lrn(conv1_1, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  pool1_1 = tf.nn.max_pool(norm1_1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
+
+  conv1_2 = tf.nn.relu(tf.nn.conv2d(X,  W1_2, strides=[1,4,4,1], padding='SAME')+b1_2)
+  norm1_2 = tf.nn.lrn(conv1_2, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  pool1_2 = tf.nn.max_pool(norm1_2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
 
-  #===== architecture =====#
-  with tf.device('/gpu:0'):
-    conv1 = tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,4,4,1], padding='SAME')+b1)
-    norm1 = tf.nn.lrn(conv1, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
-    pool1 = tf.nn.max_pool(norm1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
+  #===== Layer 2 =====#
+  conv2_1 = tf.nn.relu(tf.nn.conv2d(pool1_1, W2_1, strides=[1,1,1,1], padding='SAME')+b2_1)
+  norm2_1 = tf.nn.lrn(conv2_1, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  pool2_1 = tf.nn.max_pool(norm2_1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
-    conv2 = tf.nn.relu(tf.nn.conv2d(pool1, W2, strides=[1,1,1,1], padding='SAME')+b2)
-    norm2 = tf.nn.lrn(conv2, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
-    pool2 = tf.nn.max_pool(norm2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
+  conv2_2 = tf.nn.relu(tf.nn.conv2d(pool1_2, W2_2, strides=[1,1,1,1], padding='SAME')+b2_2)
+  norm2_2 = tf.nn.lrn(conv2_2, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  pool2_2 = tf.nn.max_pool(norm2_2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
-    conv3 = tf.nn.relu(tf.nn.conv2d(pool2, W3, strides=[1,1,1,1], padding='SAME')+b3)
-    conv4 = tf.nn.relu(tf.nn.conv2d(conv3, W4, strides=[1,1,1,1], padding='SAME')+b4)
-    conv5 = tf.nn.relu(tf.nn.conv2d(conv4, W5, strides=[1,1,1,1], padding='SAME')+b5)
-    pool5 = tf.nn.max_pool(conv5, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
+  
+  cross2 = tf.concat([pool2_1, pool2_2], 3)
 
-    YY = tf.reshape(pool5, shape=[-1,6*6*NUM_FILTER_5])
 
-    fc1 = tf.nn.relu(tf.matmul(YY,W6)+b6)
-    fc1_drop = tf.nn.dropout(fc1, keep_prob_1)
+  #===== Layer 3 =====#
+  conv3_1 = tf.nn.relu(tf.nn.conv2d(cross2, W3_1, strides=[1,1,1,1], padding='SAME')+b3_1)
+  conv3_2 = tf.nn.relu(tf.nn.conv2d(cross2, W3_2, strides=[1,1,1,1], padding='SAME')+b3_2)
 
-    fc2 = tf.nn.relu(tf.matmul(fc1_drop,W7)+b7)
-    fc2_drop = tf.nn.dropout(fc2, keep_prob_1)
 
-    Y  = tf.nn.softmax(tf.matmul(fc2_drop,W8)+b8)
+  #===== Layer 4 =====#
+  conv4_1 = tf.nn.relu(tf.nn.conv2d(conv3_1, W4_1, strides=[1,1,1,1], padding='SAME')+b4_1)
+  conv4_2 = tf.nn.relu(tf.nn.conv2d(conv3_2, W4_2, strides=[1,1,1,1], padding='SAME')+b4_2)
+
+  #===== Layer 5 =====#
+  conv5_1 = tf.nn.relu(tf.nn.conv2d(conv4_1, W5_1, strides=[1,1,1,1], padding='SAME')+b5_1)
+  conv5_2 = tf.nn.relu(tf.nn.conv2d(conv4_2, W5_2, strides=[1,1,1,1], padding='SAME')+b5_2)
+
+  pool5_1 = tf.nn.max_pool(conv5_1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
+  pool5_2 = tf.nn.max_pool(conv5_2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
+
+
+  cross5 = tf.concat([pool5_1, pool5_2], 3)
+  YY = tf.reshape(cross5, shape=[-1,6*6*NUM_FILTER_5*2])
+
+  #===== Layer 6 =====#
+  fc1 = tf.nn.relu(tf.matmul(YY,W6)+b6)
+  #fc1_drop = tf.nn.dropout(fc1, keep_prob_1)
+
+  #===== Layer 7 =====#
+  fc2 = tf.nn.relu(tf.matmul(fc1,W7)+b7)
+  #fc2_drop = tf.nn.dropout(fc2, keep_prob_1)
+
+  #===== Layer 8 =====#
+  Y  = tf.nn.softmax(tf.matmul(fc2,W8)+b8)
 
 
 
@@ -422,12 +450,15 @@ if __name__ == '__main__':
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
   cross_entropy = tf.reduce_mean(diff) + reg*sum(reg_losses)
+  tf.add_to_collection('losses', cross_entropy)
+  total_loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
+
 
   global_step = tf.Variable(0, trainable=False)
   starter_learning_rate = LEARNING_RATE
   learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
                                              1000000, 0.9, staircase=True)
-  train_step = tf.train.MomentumOptimizer(learning_rate, 0.9).minimize(cross_entropy, global_step=global_step)
+  train_step = tf.train.MomentumOptimizer(learning_rate, 0.9).minimize(total_loss, global_step=global_step)
   #train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(cross_entropy, global_step=global_step)
 
 
@@ -449,6 +480,10 @@ if __name__ == '__main__':
   #train_step = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
 
 
+  # Restore variables from disk.
+  #saver.restore(sess, "./checkpoint/model_2990000.ckpt")
+  #print("Model restored.")
+
   #te_x, te_y = batchTestRead(te_data10, te_labels10)
   print '  Start training... '
   idx_start = 0
@@ -463,11 +498,6 @@ if __name__ == '__main__':
 
   with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
-
-    # Restore variables from disk.
-    #saver.restore(sess, "./checkpoint/model_3000.ckpt")
-    #print("Model restored.")
-
 
     x, y = batchRead(image_name, class_dict, pool)
     for itr in xrange(1000000):
@@ -490,11 +520,17 @@ if __name__ == '__main__':
       #print sess.run(W9) 
       if itr % 10 == 0:
         print "Iter %d:  learning rate: %f  dropout: (%.1f %.1f) cross entropy: %f  accuracy: %f" % (itr,
-                                                        learning_rate.eval(feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2}),
-                                                        DROPOUT_PROB_1,
-                                                        DROPOUT_PROB_2,
-                                                        cross_entropy.eval(feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2}),
-                                                        accuracy.eval(feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2}))
+                                                                learning_rate.eval(feed_dict={X: x, Y_: y, 
+                                                                                              keep_prob_1: DROPOUT_PROB_1, 
+                                                                                              keep_prob_2: DROPOUT_PROB_2}),
+                                                                DROPOUT_PROB_1,
+                                                                DROPOUT_PROB_2,
+                                                                cross_entropy.eval(feed_dict={X: x, Y_: y, 
+                                                                                                            keep_prob_1: DROPOUT_PROB_1, 
+                                                                                                            keep_prob_2: DROPOUT_PROB_2}),
+                                                                accuracy.eval(feed_dict={X: x, Y_: y, 
+                                                                                                       keep_prob_1: DROPOUT_PROB_1, 
+                                                                                                       keep_prob_2: DROPOUT_PROB_2}))
 
       if itr % 1000 == 0 and itr != 0:
         model_name = "./checkpoint/model_%d.ckpt" % itr
