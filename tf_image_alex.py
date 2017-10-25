@@ -44,7 +44,7 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
   var = _variable_on_cpu(
       name,
       shape,
-      tf.truncated_normal_initializer(stddev=stddev, dtype=dtype))
+      initializer=tf.contrib.layers.xavier_initializer())
   if wd is not None:
     weight_decay = tf.multiply(tf.nn.l2_loss(var), wd, name='weight_loss')
     tf.add_to_collection('losses', weight_decay)
@@ -113,9 +113,8 @@ def batchCroppedImgRead(thread_name, dirpath, image_name, partial_batch_idx):
   return img_batch
 
 def batchRead(image_name, class_dict, pool):
-
-  #batch_idx = np.random.randint(0,len(image_name),mini_batch)
-  batch_idx = np.arange(mini_batch)
+  batch_idx = np.random.randint(0,len(image_name),mini_batch)
+  #batch_idx = np.arange(mini_batch)
   #dirpath = '/home/hhwu/ImageNet/train/'
   dirpath = '/mnt/ramdisk/crop_train/'
 
@@ -171,8 +170,8 @@ def batchRead(image_name, class_dict, pool):
 
 
 def setAsynBatchRead(image_name, class_dict, pool):
-  #batch_idx = np.random.randint(0,len(image_name),mini_batch)
-  batch_idx = np.arange(mini_batch)
+  batch_idx = np.random.randint(0,len(image_name),mini_batch)
+  #batch_idx = np.arange(mini_batch)
   dirpath = '/mnt/ramdisk/crop_train/'
 
 
@@ -258,6 +257,7 @@ if __name__ == '__main__':
   print '===== Start loading the mean of ILSVRC2012 ====='
 
   class_dict, image_name  = loadClassName('synset.csv')
+  num_images = len(image_name)
 
   pool = ThreadPool(processes=8)
   print "Multi-threads begin!"
@@ -295,26 +295,26 @@ if __name__ == '__main__':
   Y_ = tf.placeholder(tf.float32, shape=[None,K])
 
 
-  #W1_1  = _variable_with_weight_decay('W1_1', shape=[11, 11, 3, NUM_FILTER_1], stddev=1e-2, wd=5e-4)
-  #W1_2  = _variable_with_weight_decay('W1_2', shape=[11, 11, 3, NUM_FILTER_1], stddev=1e-2, wd=5e-4)
+  W1_1  = _variable_with_weight_decay('W1_1', shape=[11, 11, 3, NUM_FILTER_1], stddev=1e-2, wd=5e-4)
+  W1_2  = _variable_with_weight_decay('W1_2', shape=[11, 11, 3, NUM_FILTER_1], stddev=1e-2, wd=5e-4)
 
-  #W2_1  = _variable_with_weight_decay('W2_1', shape=[5, 5, NUM_FILTER_1,NUM_FILTER_2], stddev=1e-2, wd=5e-4)
-  #W2_2  = _variable_with_weight_decay('W2_2', shape=[5, 5, NUM_FILTER_1,NUM_FILTER_2], stddev=1e-2, wd=5e-4)
+  W2_1  = _variable_with_weight_decay('W2_1', shape=[5, 5, NUM_FILTER_1,NUM_FILTER_2], stddev=1e-2, wd=5e-4)
+  W2_2  = _variable_with_weight_decay('W2_2', shape=[5, 5, NUM_FILTER_1,NUM_FILTER_2], stddev=1e-2, wd=5e-4)
 
-  #W3_1  = _variable_with_weight_decay('W3_1', shape=[3, 3, NUM_FILTER_2*2,NUM_FILTER_3], stddev=1e-2, wd=5e-4)
-  #W3_2  = _variable_with_weight_decay('W3_2', shape=[3, 3, NUM_FILTER_2*2,NUM_FILTER_3], stddev=1e-2, wd=5e-4)
+  W3_1  = _variable_with_weight_decay('W3_1', shape=[3, 3, NUM_FILTER_2*2,NUM_FILTER_3], stddev=1e-2, wd=5e-4)
+  W3_2  = _variable_with_weight_decay('W3_2', shape=[3, 3, NUM_FILTER_2*2,NUM_FILTER_3], stddev=1e-2, wd=5e-4)
 
-  #W4_1  = _variable_with_weight_decay('W4_1', shape=[3, 3, NUM_FILTER_3,NUM_FILTER_4], stddev=1e-2, wd=5e-4)
-  #W4_2  = _variable_with_weight_decay('W4_2', shape=[3, 3, NUM_FILTER_3,NUM_FILTER_4], stddev=1e-2, wd=5e-4)
+  W4_1  = _variable_with_weight_decay('W4_1', shape=[3, 3, NUM_FILTER_3,NUM_FILTER_4], stddev=1e-2, wd=5e-4)
+  W4_2  = _variable_with_weight_decay('W4_2', shape=[3, 3, NUM_FILTER_3,NUM_FILTER_4], stddev=1e-2, wd=5e-4)
 
-  #W5_1  = _variable_with_weight_decay('W5_1', shape=[3, 3, NUM_FILTER_4,NUM_FILTER_5], stddev=1e-2, wd=5e-4)
-  #W5_2  = _variable_with_weight_decay('W5_2', shape=[3, 3, NUM_FILTER_4,NUM_FILTER_5], stddev=1e-2, wd=5e-4)
+  W5_1  = _variable_with_weight_decay('W5_1', shape=[3, 3, NUM_FILTER_4,NUM_FILTER_5], stddev=1e-2, wd=5e-4)
+  W5_2  = _variable_with_weight_decay('W5_2', shape=[3, 3, NUM_FILTER_4,NUM_FILTER_5], stddev=1e-2, wd=5e-4)
 
-  #W6    = _variable_with_weight_decay('W6', shape=[6*6*NUM_FILTER_5*2,NUM_NEURON_1], stddev=5e-3, wd=5e-4)
+  W6    = _variable_with_weight_decay('W6', shape=[6*6*NUM_FILTER_5*2,NUM_NEURON_1], stddev=5e-3, wd=5e-4)
 
-  #W7    = _variable_with_weight_decay('W7', shape=[NUM_NEURON_1,NUM_NEURON_2], stddev=5e-3, wd=5e-4)
+  W7    = _variable_with_weight_decay('W7', shape=[NUM_NEURON_1,NUM_NEURON_2], stddev=5e-3, wd=5e-4)
 
-  #W8    = _variable_with_weight_decay('W8', shape=[NUM_NEURON_2,K], stddev=1e-2, wd=5e-4)
+  W8    = _variable_with_weight_decay('W8', shape=[NUM_NEURON_2,K], stddev=1e-2, wd=5e-4)
   
 
   #W1_1  = tf.Variable(tf.truncated_normal([11,11,3,NUM_FILTER_1], stddev=0.01))
@@ -341,26 +341,26 @@ if __name__ == '__main__':
   #W8 = tf.Variable(tf.truncated_normal([NUM_NEURON_2*2,K], stddev=0.01))
 
 
-  W1_1 = tf.get_variable("W1_1", shape=[11,11,3,NUM_FILTER_1], initializer=tf.contrib.layers.xavier_initializer())
-  W1_2 = tf.get_variable("W1_2", shape=[11,11,3,NUM_FILTER_1], initializer=tf.contrib.layers.xavier_initializer())
+  #W1_1 = tf.get_variable("W1_1", shape=[11,11,3,NUM_FILTER_1], initializer=tf.contrib.layers.xavier_initializer())
+  #W1_2 = tf.get_variable("W1_2", shape=[11,11,3,NUM_FILTER_1], initializer=tf.contrib.layers.xavier_initializer())
 
-  W2_1 = tf.get_variable("W2_1", shape=[5,5,NUM_FILTER_1,NUM_FILTER_2], initializer=tf.contrib.layers.xavier_initializer())
-  W2_2 = tf.get_variable("W2_2", shape=[5,5,NUM_FILTER_1,NUM_FILTER_2], initializer=tf.contrib.layers.xavier_initializer())
+  #W2_1 = tf.get_variable("W2_1", shape=[5,5,NUM_FILTER_1,NUM_FILTER_2], initializer=tf.contrib.layers.xavier_initializer())
+  #W2_2 = tf.get_variable("W2_2", shape=[5,5,NUM_FILTER_1,NUM_FILTER_2], initializer=tf.contrib.layers.xavier_initializer())
 
-  W3_1 = tf.get_variable("W3_1", shape=[3,3,NUM_FILTER_2*2,NUM_FILTER_3], initializer=tf.contrib.layers.xavier_initializer())
-  W3_2 = tf.get_variable("W3_2", shape=[3,3,NUM_FILTER_2*2,NUM_FILTER_3], initializer=tf.contrib.layers.xavier_initializer())
+  #W3_1 = tf.get_variable("W3_1", shape=[3,3,NUM_FILTER_2*2,NUM_FILTER_3], initializer=tf.contrib.layers.xavier_initializer())
+  #W3_2 = tf.get_variable("W3_2", shape=[3,3,NUM_FILTER_2*2,NUM_FILTER_3], initializer=tf.contrib.layers.xavier_initializer())
 
-  W4_1 = tf.get_variable("W4_1", shape=[3,3,NUM_FILTER_3,NUM_FILTER_4], initializer=tf.contrib.layers.xavier_initializer())
-  W4_2 = tf.get_variable("W4_2", shape=[3,3,NUM_FILTER_3,NUM_FILTER_4], initializer=tf.contrib.layers.xavier_initializer())
+  #W4_1 = tf.get_variable("W4_1", shape=[3,3,NUM_FILTER_3,NUM_FILTER_4], initializer=tf.contrib.layers.xavier_initializer())
+  #W4_2 = tf.get_variable("W4_2", shape=[3,3,NUM_FILTER_3,NUM_FILTER_4], initializer=tf.contrib.layers.xavier_initializer())
 
-  W5_1 = tf.get_variable("W5_1", shape=[3,3,NUM_FILTER_4,NUM_FILTER_5], initializer=tf.contrib.layers.xavier_initializer())
-  W5_2 = tf.get_variable("W5_2", shape=[3,3,NUM_FILTER_4,NUM_FILTER_5], initializer=tf.contrib.layers.xavier_initializer())
+  #W5_1 = tf.get_variable("W5_1", shape=[3,3,NUM_FILTER_4,NUM_FILTER_5], initializer=tf.contrib.layers.xavier_initializer())
+  #W5_2 = tf.get_variable("W5_2", shape=[3,3,NUM_FILTER_4,NUM_FILTER_5], initializer=tf.contrib.layers.xavier_initializer())
 
-  W6   = tf.get_variable("W6", shape=[6*6*NUM_FILTER_5*2,NUM_NEURON_1], initializer=tf.contrib.layers.xavier_initializer())
+  #W6   = tf.get_variable("W6", shape=[6*6*NUM_FILTER_5*2,NUM_NEURON_1], initializer=tf.contrib.layers.xavier_initializer())
 
-  W7   = tf.get_variable("W7", shape=[NUM_NEURON_1,NUM_NEURON_2], initializer=tf.contrib.layers.xavier_initializer())
+  #W7   = tf.get_variable("W7", shape=[NUM_NEURON_1,NUM_NEURON_2], initializer=tf.contrib.layers.xavier_initializer())
 
-  W8   = tf.get_variable("W8", shape=[NUM_NEURON_2,K], initializer=tf.contrib.layers.xavier_initializer())
+  #W8   = tf.get_variable("W8", shape=[NUM_NEURON_2,K], initializer=tf.contrib.layers.xavier_initializer())
 
 
 
@@ -485,7 +485,7 @@ if __name__ == '__main__':
 
   #te_x, te_y = batchTestRead(te_data10, te_labels10)
   print '  Start training... '
-  idx_start = 0
+  epoch_num     = 0
   epoch_counter = 0
 
   max_test_acc = 0
@@ -536,5 +536,17 @@ if __name__ == '__main__':
         save_path = saver.save(sess, model_name)
         #save_path = saver.save(sess, "./checkpoint/model.ckpt")
         print("Model saved in file: %s" % save_path)
+
+
+      if epoch_counter*mini_batch > num_images:
+        epoch_counter = 0
+        epoch_num = epoch_num + 1
+        print "Epoch: ", epoch_num
+      else:
+        epoch_counter = epoch_counter + 1
+
+
+
+
 
 
