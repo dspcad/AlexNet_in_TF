@@ -12,6 +12,7 @@ from multiprocessing.pool import ThreadPool
 import time
 #import matplotlib.pyplot as plt
 
+
 def _variable_on_cpu(name, shape, initializer):
   """Helper to create a Variable stored on CPU memory.
   Args:
@@ -51,7 +52,7 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
   return var
 
 
-def cropImg(target_img):
+def cropImg(target_img, mean_img):
   ###############################
   #       shape[0]: height      #
   #       shape[1]: width       #
@@ -64,9 +65,12 @@ def cropImg(target_img):
     target_img = color.gray2rgb(target_img)
 
 
-  floating_img[:,:,0] = target_img[:,:,0] - mean_pixel[0]
-  floating_img[:,:,1] = target_img[:,:,1] - mean_pixel[1]
-  floating_img[:,:,2] = target_img[:,:,2] - mean_pixel[2]
+  #floating_img[:,:,0] = target_img[:,:,0] - mean_pixel[0]
+  #floating_img[:,:,1] = target_img[:,:,1] - mean_pixel[1]
+  #floating_img[:,:,2] = target_img[:,:,2] - mean_pixel[2]
+
+  floating_img = target_img - mean_img
+  #floating_img = target_img
 
 
   #target_img = target_img - mean_img
@@ -82,15 +86,15 @@ def cropImg(target_img):
   #height_shift = np.random.randint(0,256-224)
   #width_shift  = np.random.randint(0,256-224)
 
-  height_shift = 16
-  width_shift  = 16
-  target_img = floating_img[height_shift:height_shift+224, width_shift:width_shift+224,:]
+  height_shift = 14
+  width_shift  = 14
+  target_img = floating_img[height_shift:height_shift+227, width_shift:width_shift+227,:]
 
   #print target_img
   return target_img
 
 
-def batchCroppedImgRead(thread_name, dirpath, image_name, partial_batch_idx):
+def batchCroppedImgRead(thread_name, dirpath, image_name, mean_img, partial_batch_idx):
   #print "%s is cropping the images..." % thread_name
   img_batch = []
 
@@ -101,7 +105,7 @@ def batchCroppedImgRead(thread_name, dirpath, image_name, partial_batch_idx):
     #################################
     # convert RGB from float to int #
     #################################
-    croppedImg = cropImg(target_img)
+    croppedImg = cropImg(target_img, mean_img)
 
     image_class_name = image_name[i].split("_")[0]
     if len(img_batch) == 0:
@@ -112,7 +116,7 @@ def batchCroppedImgRead(thread_name, dirpath, image_name, partial_batch_idx):
 
   return img_batch
 
-def batchRead(image_name, class_dict, pool):
+def batchRead(image_name, class_dict, mean_img, pool):
   batch_idx = np.random.randint(0,len(image_name),mini_batch)
   #batch_idx = np.arange(mini_batch)
   #dirpath = '/home/hhwu/ImageNet/train/'
@@ -133,14 +137,14 @@ def batchRead(image_name, class_dict, pool):
 
   #img_batch = batchCroppedImgRead("Thread-0", dirpath, image_name, batch_idx)
 
-  async_result_0 = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, image_name, batch_idx[:int(mini_batch/8)]))
-  async_result_1 = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, image_name, batch_idx[int(mini_batch/8):int(2*mini_batch/8)]))
-  async_result_2 = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, image_name, batch_idx[int(2*mini_batch/8):int(3*mini_batch/8)]))
-  async_result_3 = pool.apply_async(batchCroppedImgRead, ("Thread-3", dirpath, image_name, batch_idx[int(3*mini_batch/8):int(4*mini_batch/8)]))
-  async_result_4 = pool.apply_async(batchCroppedImgRead, ("Thread-4", dirpath, image_name, batch_idx[int(4*mini_batch/8):int(5*mini_batch/8)]))
-  async_result_5 = pool.apply_async(batchCroppedImgRead, ("Thread-5", dirpath, image_name, batch_idx[int(5*mini_batch/8):int(6*mini_batch/8)]))
-  async_result_6 = pool.apply_async(batchCroppedImgRead, ("Thread-6", dirpath, image_name, batch_idx[int(6*mini_batch/8):int(7*mini_batch/8)]))
-  async_result_7 = pool.apply_async(batchCroppedImgRead, ("Thread-7", dirpath, image_name, batch_idx[int(7*mini_batch/8):]))
+  async_result_0 = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, image_name, mean_img, batch_idx[:int(mini_batch/8)]))
+  async_result_1 = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, image_name, mean_img, batch_idx[int(mini_batch/8):int(2*mini_batch/8)]))
+  async_result_2 = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, image_name, mean_img, batch_idx[int(2*mini_batch/8):int(3*mini_batch/8)]))
+  async_result_3 = pool.apply_async(batchCroppedImgRead, ("Thread-3", dirpath, image_name, mean_img, batch_idx[int(3*mini_batch/8):int(4*mini_batch/8)]))
+  async_result_4 = pool.apply_async(batchCroppedImgRead, ("Thread-4", dirpath, image_name, mean_img, batch_idx[int(4*mini_batch/8):int(5*mini_batch/8)]))
+  async_result_5 = pool.apply_async(batchCroppedImgRead, ("Thread-5", dirpath, image_name, mean_img, batch_idx[int(5*mini_batch/8):int(6*mini_batch/8)]))
+  async_result_6 = pool.apply_async(batchCroppedImgRead, ("Thread-6", dirpath, image_name, mean_img, batch_idx[int(6*mini_batch/8):int(7*mini_batch/8)]))
+  async_result_7 = pool.apply_async(batchCroppedImgRead, ("Thread-7", dirpath, image_name, mean_img, batch_idx[int(7*mini_batch/8):]))
 
   img_batch    = async_result_0.get()
   return_val_1 = async_result_1.get()
@@ -163,13 +167,15 @@ def batchRead(image_name, class_dict, pool):
    
 
   
-  img_batch = img_batch.reshape(mini_batch,224,224,3)
+  img_batch = img_batch.reshape(mini_batch,227,227,3)
 
+  #for i in range(0, mini_batch):
+  #  io.imsave("%s_%d.%s" % ("test_img", i, 'jpeg'), img_batch[i])
   #img_batch = img_batch - mean_img
   return img_batch, train_y
 
 
-def setAsynBatchRead(image_name, class_dict, pool):
+def setAsynBatchRead(image_name, class_dict, pool, mean_img):
   batch_idx = np.random.randint(0,len(image_name),mini_batch)
   #batch_idx = np.arange(mini_batch)
   dirpath = '/mnt/ramdisk/crop_train/'
@@ -183,14 +189,14 @@ def setAsynBatchRead(image_name, class_dict, pool):
 
 
 
-  async_result_0 = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, image_name, batch_idx[:int(mini_batch/8)]))
-  async_result_1 = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, image_name, batch_idx[int(mini_batch/8):int(2*mini_batch/8)]))
-  async_result_2 = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, image_name, batch_idx[int(2*mini_batch/8):int(3*mini_batch/8)]))
-  async_result_3 = pool.apply_async(batchCroppedImgRead, ("Thread-3", dirpath, image_name, batch_idx[int(3*mini_batch/8):int(4*mini_batch/8)]))
-  async_result_4 = pool.apply_async(batchCroppedImgRead, ("Thread-4", dirpath, image_name, batch_idx[int(4*mini_batch/8):int(5*mini_batch/8)]))
-  async_result_5 = pool.apply_async(batchCroppedImgRead, ("Thread-5", dirpath, image_name, batch_idx[int(5*mini_batch/8):int(6*mini_batch/8)]))
-  async_result_6 = pool.apply_async(batchCroppedImgRead, ("Thread-6", dirpath, image_name, batch_idx[int(6*mini_batch/8):int(7*mini_batch/8)]))
-  async_result_7 = pool.apply_async(batchCroppedImgRead, ("Thread-7", dirpath, image_name, batch_idx[int(7*mini_batch/8):]))
+  async_result_0 = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, image_name, mean_img, batch_idx[:int(mini_batch/8)]))
+  async_result_1 = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, image_name, mean_img, batch_idx[int(mini_batch/8):int(2*mini_batch/8)]))
+  async_result_2 = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, image_name, mean_img, batch_idx[int(2*mini_batch/8):int(3*mini_batch/8)]))
+  async_result_3 = pool.apply_async(batchCroppedImgRead, ("Thread-3", dirpath, image_name, mean_img, batch_idx[int(3*mini_batch/8):int(4*mini_batch/8)]))
+  async_result_4 = pool.apply_async(batchCroppedImgRead, ("Thread-4", dirpath, image_name, mean_img, batch_idx[int(4*mini_batch/8):int(5*mini_batch/8)]))
+  async_result_5 = pool.apply_async(batchCroppedImgRead, ("Thread-5", dirpath, image_name, mean_img, batch_idx[int(5*mini_batch/8):int(6*mini_batch/8)]))
+  async_result_6 = pool.apply_async(batchCroppedImgRead, ("Thread-6", dirpath, image_name, mean_img, batch_idx[int(6*mini_batch/8):int(7*mini_batch/8)]))
+  async_result_7 = pool.apply_async(batchCroppedImgRead, ("Thread-7", dirpath, image_name, mean_img, batch_idx[int(7*mini_batch/8):]))
 
   return async_result_0, async_result_1, async_result_2, async_result_3, async_result_4, async_result_5, async_result_6, async_result_7, train_y
 
@@ -215,7 +221,7 @@ def getAsynBatchRead(async_result_0, async_result_1, async_result_2, async_resul
   asyn_img_batch = np.vstack((asyn_img_batch, return_val_7))
  
   
-  asyn_img_batch = asyn_img_batch.reshape(mini_batch,224,224,3)
+  asyn_img_batch = asyn_img_batch.reshape(mini_batch,227,227,3)
   #asyn_img_batch = asyn_img_batch - mean_img
 
   return asyn_img_batch
@@ -256,6 +262,14 @@ def loadClassName(filename):
 if __name__ == '__main__':
   print '===== Start loading the mean of ILSVRC2012 ====='
 
+  fo = open('mean.bin', 'rb')
+  mean_img = cPickle.load(fo)
+  fo.close()
+  #print mean_img
+
+  np.random.seed(31)
+
+
   class_dict, image_name  = loadClassName('synset.csv')
   num_images = len(image_name)
 
@@ -291,9 +305,9 @@ if __name__ == '__main__':
   keep_prob_2 = tf.placeholder(tf.float32)
 
   # initialize parameters randomly
-  X  = tf.placeholder(tf.float32, shape=[None, 224,224,3])
-  Y_ = tf.placeholder(tf.float32, shape=[None,K])
 
+  X  = tf.placeholder(tf.float32, shape=[None, 227,227,3])
+  Y_ = tf.placeholder(tf.float32, shape=[None,K])
 
   W1_1  = _variable_with_weight_decay('W1_1', shape=[11, 11, 3, NUM_FILTER_1], stddev=1e-2, wd=5e-4)
   W1_2  = _variable_with_weight_decay('W1_2', shape=[11, 11, 3, NUM_FILTER_1], stddev=1e-2, wd=5e-4)
@@ -332,13 +346,11 @@ if __name__ == '__main__':
   #W5_1  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_4,NUM_FILTER_5], stddev=0.01))
   #W5_2  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_4,NUM_FILTER_5], stddev=0.01))
 
-  #W6_1 = tf.Variable(tf.truncated_normal([6*6*NUM_FILTER_5*2,NUM_NEURON_1], stddev=0.01))
-  #W6_2 = tf.Variable(tf.truncated_normal([6*6*NUM_FILTER_5*2,NUM_NEURON_1], stddev=0.01))
+  #W6    = tf.Variable(tf.truncated_normal([6*6*NUM_FILTER_5*2,NUM_NEURON_1], stddev=0.005))
 
-  #W7_1 = tf.Variable(tf.truncated_normal([NUM_NEURON_1*2,NUM_NEURON_2], stddev=0.01))
-  #W7_2 = tf.Variable(tf.truncated_normal([NUM_NEURON_1*2,NUM_NEURON_2], stddev=0.01))
+  #W7    = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=0.005))
 
-  #W8 = tf.Variable(tf.truncated_normal([NUM_NEURON_2*2,K], stddev=0.01))
+  #W8    = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=0.01))
 
 
   #W1_1 = tf.get_variable("W1_1", shape=[11,11,3,NUM_FILTER_1], initializer=tf.contrib.layers.xavier_initializer())
@@ -363,7 +375,6 @@ if __name__ == '__main__':
   #W8   = tf.get_variable("W8", shape=[NUM_NEURON_2,K], initializer=tf.contrib.layers.xavier_initializer())
 
 
-
   b1_1 = tf.Variable(tf.zeros([NUM_FILTER_1]))
   b1_2 = tf.Variable(tf.zeros([NUM_FILTER_1]))
 
@@ -384,6 +395,8 @@ if __name__ == '__main__':
   b7   = tf.Variable(tf.ones([NUM_NEURON_2])/10)
 
   b8 = tf.Variable(tf.zeros([K]))
+
+
 
   ##########################
   #      Architecture      #
@@ -428,7 +441,7 @@ if __name__ == '__main__':
   pool5_2 = tf.nn.max_pool(conv5_2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
 
-  cross5 = tf.concat([pool5_1, pool5_2], 3)
+  cross5 = tf.concat([pool5_1, pool5_2], 1)
   YY = tf.reshape(cross5, shape=[-1,6*6*NUM_FILTER_5*2])
 
   #===== Layer 6 =====#
@@ -445,27 +458,23 @@ if __name__ == '__main__':
 
 
 
-
   diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
   cross_entropy = tf.reduce_mean(diff) + reg*sum(reg_losses)
   tf.add_to_collection('losses', cross_entropy)
   total_loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
-
+ 
 
   global_step = tf.Variable(0, trainable=False)
-  starter_learning_rate = LEARNING_RATE
-  learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
+  learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step,
                                              1000000, 0.9, staircase=True)
+
   train_step = tf.train.MomentumOptimizer(learning_rate, 0.9).minimize(total_loss, global_step=global_step)
-  #train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(cross_entropy, global_step=global_step)
+  #train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
 
 
   correct_prediction = tf.equal(tf.argmax(Y, 1), tf.argmax(Y_, 1))
   accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-
-
-
 
 
   # Passing global_step to minimize() will increment it at each step.
@@ -498,15 +507,17 @@ if __name__ == '__main__':
   with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
 
-    x, y = batchRead(image_name, class_dict, pool)
+    x, y = batchRead(image_name, class_dict, mean_img, pool)
     for itr in xrange(1000000):
       #x, y = batchRead(image_name, class_dict, mean_img, pool)
 
 
       #print y
-      asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7, asyn_train_y = setAsynBatchRead(image_name, class_dict, pool)
+      asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7, asyn_train_y = setAsynBatchRead(image_name, class_dict, pool, mean_img)
       #start_time = time.time()
       train_step.run(feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
+
+
       #elapsed_time = time.time() - start_time
       #print "Time for async read and training: %f" % elapsed_time
       x = getAsynBatchRead(asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7)
