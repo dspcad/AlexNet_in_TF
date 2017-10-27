@@ -45,7 +45,9 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
   var = _variable_on_cpu(
       name,
       shape,
-      initializer=tf.contrib.layers.xavier_initializer())
+      initializer=tf.contrib.layers.xavier_initializer()
+      #tf.truncated_normal_initializer(stddev=stddev, dtype=dtype)
+  )
   if wd is not None:
     weight_decay = tf.multiply(tf.nn.l2_loss(var), wd, name='weight_loss')
     tf.add_to_collection('losses', weight_decay)
@@ -309,26 +311,26 @@ if __name__ == '__main__':
   X  = tf.placeholder(tf.float32, shape=[None, 227,227,3])
   Y_ = tf.placeholder(tf.float32, shape=[None,K])
 
-  W1_1  = _variable_with_weight_decay('W1_1', shape=[11, 11, 3, NUM_FILTER_1], stddev=1e-2, wd=5e-4)
-  W1_2  = _variable_with_weight_decay('W1_2', shape=[11, 11, 3, NUM_FILTER_1], stddev=1e-2, wd=5e-4)
+  W1_1  = _variable_with_weight_decay('W1_1', shape=[11, 11, 3, NUM_FILTER_1], stddev=1e-2, wd=2.5e-4)
+  W1_2  = _variable_with_weight_decay('W1_2', shape=[11, 11, 3, NUM_FILTER_1], stddev=1e-2, wd=2.5e-4)
 
-  W2_1  = _variable_with_weight_decay('W2_1', shape=[5, 5, NUM_FILTER_1,NUM_FILTER_2], stddev=1e-2, wd=5e-4)
-  W2_2  = _variable_with_weight_decay('W2_2', shape=[5, 5, NUM_FILTER_1,NUM_FILTER_2], stddev=1e-2, wd=5e-4)
+  W2_1  = _variable_with_weight_decay('W2_1', shape=[5, 5, NUM_FILTER_1,NUM_FILTER_2], stddev=1e-2, wd=2.5e-4)
+  W2_2  = _variable_with_weight_decay('W2_2', shape=[5, 5, NUM_FILTER_1,NUM_FILTER_2], stddev=1e-2, wd=2.5e-4)
 
-  W3_1  = _variable_with_weight_decay('W3_1', shape=[3, 3, NUM_FILTER_2*2,NUM_FILTER_3], stddev=1e-2, wd=5e-4)
-  W3_2  = _variable_with_weight_decay('W3_2', shape=[3, 3, NUM_FILTER_2*2,NUM_FILTER_3], stddev=1e-2, wd=5e-4)
+  W3_1  = _variable_with_weight_decay('W3_1', shape=[3, 3, NUM_FILTER_2*2,NUM_FILTER_3], stddev=1e-2, wd=2.5e-4)
+  W3_2  = _variable_with_weight_decay('W3_2', shape=[3, 3, NUM_FILTER_2*2,NUM_FILTER_3], stddev=1e-2, wd=2.5e-4)
 
-  W4_1  = _variable_with_weight_decay('W4_1', shape=[3, 3, NUM_FILTER_3,NUM_FILTER_4], stddev=1e-2, wd=5e-4)
-  W4_2  = _variable_with_weight_decay('W4_2', shape=[3, 3, NUM_FILTER_3,NUM_FILTER_4], stddev=1e-2, wd=5e-4)
+  W4_1  = _variable_with_weight_decay('W4_1', shape=[3, 3, NUM_FILTER_3,NUM_FILTER_4], stddev=1e-2, wd=2.5e-4)
+  W4_2  = _variable_with_weight_decay('W4_2', shape=[3, 3, NUM_FILTER_3,NUM_FILTER_4], stddev=1e-2, wd=2.5e-4)
 
-  W5_1  = _variable_with_weight_decay('W5_1', shape=[3, 3, NUM_FILTER_4,NUM_FILTER_5], stddev=1e-2, wd=5e-4)
-  W5_2  = _variable_with_weight_decay('W5_2', shape=[3, 3, NUM_FILTER_4,NUM_FILTER_5], stddev=1e-2, wd=5e-4)
+  W5_1  = _variable_with_weight_decay('W5_1', shape=[3, 3, NUM_FILTER_4,NUM_FILTER_5], stddev=1e-2, wd=2.5e-4)
+  W5_2  = _variable_with_weight_decay('W5_2', shape=[3, 3, NUM_FILTER_4,NUM_FILTER_5], stddev=1e-2, wd=2.5e-4)
 
-  W6    = _variable_with_weight_decay('W6', shape=[6*6*NUM_FILTER_5*2,NUM_NEURON_1], stddev=5e-3, wd=5e-4)
+  W6    = _variable_with_weight_decay('W6', shape=[6*6*NUM_FILTER_5*2,NUM_NEURON_1], stddev=5e-3, wd=2.5e-4)
 
-  W7    = _variable_with_weight_decay('W7', shape=[NUM_NEURON_1,NUM_NEURON_2], stddev=5e-3, wd=5e-4)
+  W7    = _variable_with_weight_decay('W7', shape=[NUM_NEURON_1,NUM_NEURON_2], stddev=5e-3, wd=2.5e-4)
 
-  W8    = _variable_with_weight_decay('W8', shape=[NUM_NEURON_2,K], stddev=1e-2, wd=5e-4)
+  W8    = _variable_with_weight_decay('W8', shape=[NUM_NEURON_2,K], stddev=1e-2, wd=2.5e-4)
   
 
   #W1_1  = tf.Variable(tf.truncated_normal([11,11,3,NUM_FILTER_1], stddev=0.01))
@@ -458,9 +460,10 @@ if __name__ == '__main__':
 
 
 
-  diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
-  reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
-  cross_entropy = tf.reduce_mean(diff) + reg*sum(reg_losses)
+  #diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
+  #reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+  #cross_entropy = tf.reduce_mean(diff) + reg*sum(reg_losses)
+  cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y))
   tf.add_to_collection('losses', cross_entropy)
   total_loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
  
@@ -511,25 +514,13 @@ if __name__ == '__main__':
     for itr in xrange(1000000):
       #x, y = batchRead(image_name, class_dict, mean_img, pool)
 
-
       #print y
       asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7, asyn_train_y = setAsynBatchRead(image_name, class_dict, pool, mean_img)
       #start_time = time.time()
+
       train_step.run(feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
-
-
-      #elapsed_time = time.time() - start_time
-      #print "Time for async read and training: %f" % elapsed_time
-      x = getAsynBatchRead(asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7)
-      y = asyn_train_y
-      
-
-      #print train_step
- 
-      #print "W9:"
-      #print sess.run(W9) 
       if itr % 10 == 0:
-        print "Iter %d:  learning rate: %f  dropout: (%.1f %.1f) cross entropy: %f  accuracy: %f" % (itr,
+        print "Iter %d:  learning rate: %f  dropout: (%.1f %.1f) cross entropy: %f total loss: %f  accuracy: %f" % (itr,
                                                                 learning_rate.eval(feed_dict={X: x, Y_: y, 
                                                                                               keep_prob_1: DROPOUT_PROB_1, 
                                                                                               keep_prob_2: DROPOUT_PROB_2}),
@@ -538,10 +529,27 @@ if __name__ == '__main__':
                                                                 cross_entropy.eval(feed_dict={X: x, Y_: y, 
                                                                                                             keep_prob_1: DROPOUT_PROB_1, 
                                                                                                             keep_prob_2: DROPOUT_PROB_2}),
+                                                                total_loss.eval(feed_dict={X: x, Y_: y, 
+                                                                                                            keep_prob_1: DROPOUT_PROB_1, 
+                                                                                                            keep_prob_2: DROPOUT_PROB_2}),
+
                                                                 accuracy.eval(feed_dict={X: x, Y_: y, 
                                                                                                        keep_prob_1: DROPOUT_PROB_1, 
                                                                                                        keep_prob_2: DROPOUT_PROB_2}))
 
+
+
+      x = getAsynBatchRead(asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7)
+      y = asyn_train_y
+
+      #elapsed_time = time.time() - start_time
+      #print "Time for async read and training: %f" % elapsed_time
+      
+
+      #print train_step
+ 
+      #print "W9:"
+      #print sess.run(W9) 
       if itr % 1000 == 0 and itr != 0:
         model_name = "./checkpoint/model_%d.ckpt" % itr
         save_path = saver.save(sess, model_name)
