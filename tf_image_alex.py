@@ -26,33 +26,8 @@ def cropImg(target_img):
     target_img = color.gray2rgb(target_img)
 
 
-  #if target_img.shape[0] < target_img.shape[1]:
-  #  width = int(target_img.shape[1]*256/target_img.shape[0])
-  #  #if width < 224:
-  #  #  width = 224
 
-  #  offset = int((width-256)/2)
-
-  #  target_img = transform.resize(target_img, (256,width,3))
-  #  target_img = target_img[:, offset:256+offset, :]
-  #else:
-  #  height = int(target_img.shape[0]*256/target_img.shape[1])
-  #  #if height < 224:
-  #  #  height = 224
-
-  #  offset = int((height-256)/2)
-
-  #  target_img = transform.resize(target_img, (height,256,3))
-  #  target_img = target_img[offset:256+offset, :, :]
-
-  #target_img = target_img.astype(float) 
-  #target_img[:,:,0] = target_img[:,:,0] - mean_pixel[0]
-  #target_img[:,:,1] = target_img[:,:,1] - mean_pixel[1]
-  #target_img[:,:,2] = target_img[:,:,2] - mean_pixel[2]
-
-  floating_img[:,:,0] = target_img[:,:,0] - mean_pixel[0]
-  floating_img[:,:,1] = target_img[:,:,1] - mean_pixel[1]
-  floating_img[:,:,2] = target_img[:,:,2] - mean_pixel[2]
+  floating_img = target_img - mean_img
 
  
   ###############################
@@ -87,13 +62,7 @@ def batchCroppedImgRead(thread_name, dirpath, image_name, partial_batch_idx):
     # convert RGB from float to int #
     #################################
     croppedImg = cropImg(target_img)
-    #croppedImg = cropImg(target_img, mean_img)*255
-    #croppedImg = croppedImg.astype('uint8') 
-    #croppedImg[:,:,0] = croppedImg[:,:,0] - VGG_MEAN[0]
-    #croppedImg[:,:,1] = croppedImg[:,:,1] - VGG_MEAN[1]
-    #croppedImg[:,:,2] = croppedImg[:,:,2] - VGG_MEAN[2]
-    #io.imsave("%s_%d_%d.%s" % ("crop_img", i, int(class_dict[image_class_name]), 'jpeg'), target_img)
-
+   
     image_class_name = image_name[i].split("_")[0]
     if len(img_batch) == 0:
       img_batch = croppedImg
@@ -312,9 +281,9 @@ def loadClassName(filename):
 if __name__ == '__main__':
   print '===== Start loading the mean of ILSVRC2012 ====='
 
-  #fo = open('mean.bin', 'rb')
-  #mean_img = cPickle.load(fo)
-  #fo.close()
+  fo = open('mean.bin', 'rb')
+  mean_img = cPickle.load(fo)
+  fo.close()
   #print mean_img
   #mean_img = mean_img*255
   #mean_img = mean_img.astype('uint8')
@@ -345,9 +314,9 @@ if __name__ == '__main__':
   DROPOUT_PROB_1 = 1.00
   DROPOUT_PROB_2 = 1.00
 
-  LEARNING_RATE = 1e-2
+  LEARNING_RATE = 5e-3
  
-  reg = 1e-5 # regularization strength
+  reg = 5e-4 # regularization strength
 
 
   # Dropout probability
@@ -391,43 +360,41 @@ if __name__ == '__main__':
 
 
   #===== architecture =====#
-  with tf.device('/gpu:0'):
-    conv1 = tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,4,4,1], padding='SAME')+b1)
-    norm1 = tf.nn.lrn(conv1, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
-    pool1 = tf.nn.max_pool(norm1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
+  conv1 = tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,4,4,1], padding='SAME')+b1)
+  pool1 = tf.nn.max_pool(conv1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
+  norm1 = tf.nn.lrn(pool1, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
 
-    conv2 = tf.nn.relu(tf.nn.conv2d(pool1, W2, strides=[1,1,1,1], padding='SAME')+b2)
-    norm2 = tf.nn.lrn(conv2, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
-    pool2 = tf.nn.max_pool(norm2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
+  conv2 = tf.nn.relu(tf.nn.conv2d(norm1, W2, strides=[1,1,1,1], padding='SAME')+b2)
+  pool2 = tf.nn.max_pool(conv2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
+  norm2 = tf.nn.lrn(pool2, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
 
-    conv3 = tf.nn.relu(tf.nn.conv2d(pool2, W3, strides=[1,1,1,1], padding='SAME')+b3)
-    conv4 = tf.nn.relu(tf.nn.conv2d(conv3, W4, strides=[1,1,1,1], padding='SAME')+b4)
-    conv5 = tf.nn.relu(tf.nn.conv2d(conv4, W5, strides=[1,1,1,1], padding='SAME')+b5)
-    pool5 = tf.nn.max_pool(conv5, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
+  conv3 = tf.nn.relu(tf.nn.conv2d(norm2, W3, strides=[1,1,1,1], padding='SAME')+b3)
+  conv4 = tf.nn.relu(tf.nn.conv2d(conv3, W4, strides=[1,1,1,1], padding='SAME')+b4)
+  conv5 = tf.nn.relu(tf.nn.conv2d(conv4, W5, strides=[1,1,1,1], padding='SAME')+b5)
+  pool5 = tf.nn.max_pool(conv5, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
-    YY = tf.reshape(pool5, shape=[-1,6*6*NUM_FILTER_5])
+  YY = tf.reshape(pool5, shape=[-1,6*6*NUM_FILTER_5])
 
-    fc1 = tf.nn.relu(tf.matmul(YY,W6)+b6)
-    fc1_drop = tf.nn.dropout(fc1, keep_prob_1)
+  fc1 = tf.nn.relu(tf.matmul(YY,W6)+b6)
+  fc1_drop = tf.nn.dropout(fc1, keep_prob_1)
 
-    fc2 = tf.nn.relu(tf.matmul(fc1_drop,W7)+b7)
-    fc2_drop = tf.nn.dropout(fc2, keep_prob_1)
+  fc2 = tf.nn.relu(tf.matmul(fc1_drop,W7)+b7)
+  fc2_drop = tf.nn.dropout(fc2, keep_prob_1)
 
-    Y  = tf.nn.softmax(tf.matmul(fc2_drop,W8)+b8)
-
+  Y  = tf.nn.softmax(tf.matmul(fc2_drop,W8)+b8)
 
 
 
 
-  diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
+
   reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
-  cross_entropy = tf.reduce_mean(diff) + reg*sum(reg_losses)
+  cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)) + reg*sum(reg_losses)
 
-  global_step = tf.Variable(0, trainable=False)
-  starter_learning_rate = LEARNING_RATE
-  learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-                                             1000000, 0.9, staircase=True)
-  train_step = tf.train.MomentumOptimizer(learning_rate, 0.9).minimize(cross_entropy, global_step=global_step)
+  #global_step = tf.Variable(0, trainable=False)
+  #starter_learning_rate = LEARNING_RATE
+  #learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
+  #                                           1000000, 0.9, staircase=True)
+  train_step = tf.train.MomentumOptimizer(LEARNING_RATE, 0.9, use_nesterov=True).minimize(cross_entropy)
   #train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(cross_entropy, global_step=global_step)
 
 
@@ -490,7 +457,8 @@ if __name__ == '__main__':
       #print sess.run(W9) 
       if itr % 10 == 0:
         print "Iter %d:  learning rate: %f  dropout: (%.1f %.1f) cross entropy: %f  accuracy: %f" % (itr,
-                                                        learning_rate.eval(feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2}),
+                                                        LEARNING_RATE,
+                                                        #learning_rate.eval(feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2}),
                                                         DROPOUT_PROB_1,
                                                         DROPOUT_PROB_2,
                                                         cross_entropy.eval(feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2}),
