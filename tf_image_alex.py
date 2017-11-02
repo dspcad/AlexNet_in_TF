@@ -299,7 +299,7 @@ if __name__ == '__main__':
   #########################################
   #  Configuration of CNN architecture    #
   #########################################
-  mini_batch = 256
+  mini_batch = 128
 
   K = 1000 # number of classes
   NUM_FILTER_1 = 96
@@ -314,7 +314,7 @@ if __name__ == '__main__':
   DROPOUT_PROB_1 = 1.00
   DROPOUT_PROB_2 = 1.00
 
-  LEARNING_RATE = 5e-3
+  LEARNING_RATE = 1e-3
  
   reg = 5e-4 # regularization strength
 
@@ -329,44 +329,53 @@ if __name__ == '__main__':
   Y_ = tf.placeholder(tf.float32, shape=[None,K])
 
 
-  W1 = tf.get_variable("W1", shape=[11,11,3,NUM_FILTER_1], initializer=tf.contrib.layers.xavier_initializer())
-  W2 = tf.get_variable("W2", shape=[5,5,NUM_FILTER_1,NUM_FILTER_2], initializer=tf.contrib.layers.xavier_initializer())
-  W3 = tf.get_variable("W3", shape=[3,3,NUM_FILTER_2,NUM_FILTER_3], initializer=tf.contrib.layers.xavier_initializer())
-  W4 = tf.get_variable("W4", shape=[3,3,NUM_FILTER_3,NUM_FILTER_4], initializer=tf.contrib.layers.xavier_initializer())
-  W5 = tf.get_variable("W5", shape=[3,3,NUM_FILTER_4,NUM_FILTER_5], initializer=tf.contrib.layers.xavier_initializer())
-  W6 = tf.get_variable("W6", shape=[6*6*NUM_FILTER_5,NUM_NEURON_1], initializer=tf.contrib.layers.xavier_initializer())
-  W7 = tf.get_variable("W7", shape=[NUM_NEURON_1,NUM_NEURON_2], initializer=tf.contrib.layers.xavier_initializer())
-  W8 = tf.get_variable("W8", shape=[NUM_NEURON_2,K], initializer=tf.contrib.layers.xavier_initializer())
+  #W1 = tf.get_variable("W1", shape=[11,11,3,NUM_FILTER_1], initializer=tf.contrib.layers.xavier_initializer())
+  #W2 = tf.get_variable("W2", shape=[5,5,NUM_FILTER_1,NUM_FILTER_2], initializer=tf.contrib.layers.xavier_initializer())
+  #W3 = tf.get_variable("W3", shape=[3,3,NUM_FILTER_2,NUM_FILTER_3], initializer=tf.contrib.layers.xavier_initializer())
+  #W4 = tf.get_variable("W4", shape=[3,3,NUM_FILTER_3,NUM_FILTER_4], initializer=tf.contrib.layers.xavier_initializer())
+  #W5 = tf.get_variable("W5", shape=[3,3,NUM_FILTER_4,NUM_FILTER_5], initializer=tf.contrib.layers.xavier_initializer())
+  #W6 = tf.get_variable("W6", shape=[6*6*NUM_FILTER_5,NUM_NEURON_1], initializer=tf.contrib.layers.xavier_initializer())
+  #W7 = tf.get_variable("W7", shape=[NUM_NEURON_1,NUM_NEURON_2], initializer=tf.contrib.layers.xavier_initializer())
+  #W8 = tf.get_variable("W8", shape=[NUM_NEURON_2,K], initializer=tf.contrib.layers.xavier_initializer())
 
 
-  #W1  = tf.Variable(tf.truncated_normal([11,11,3,NUM_FILTER_1], stddev=0.01))
-  #W2  = tf.Variable(tf.truncated_normal([5,5,NUM_FILTER_1,NUM_FILTER_2], stddev=0.01))
-  #W3  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2,NUM_FILTER_3], stddev=0.01))
-  #W4  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_3,NUM_FILTER_4], stddev=0.01))
-  #W5  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_4,NUM_FILTER_5], stddev=0.01))
-  #W6 = tf.Variable(tf.truncated_normal([6*6*NUM_FILTER_5,NUM_NEURON_1], stddev=0.01))
-  #W7 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=0.005))
-  #W8 = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=0.001))
+  W1  = tf.Variable(tf.truncated_normal([11,11,3,NUM_FILTER_1], stddev=0.01))
+  W2  = tf.Variable(tf.truncated_normal([5,5,NUM_FILTER_1,NUM_FILTER_2], stddev=0.01))
+  W3  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2,NUM_FILTER_3], stddev=0.01))
+  W4  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_3,NUM_FILTER_4], stddev=0.01))
+  W5  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_4,NUM_FILTER_5], stddev=0.01))
+  W6 = tf.Variable(tf.truncated_normal([6*6*NUM_FILTER_5,NUM_NEURON_1], stddev=0.01))
+  W7 = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=0.005))
+  W8 = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=0.001))
 
 
-  b1 = tf.Variable(tf.ones([NUM_FILTER_1])/10)
-  b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
-  b3 = tf.Variable(tf.ones([NUM_FILTER_3])/10)
-  b4 = tf.Variable(tf.ones([NUM_FILTER_4])/10)
-  b5 = tf.Variable(tf.ones([NUM_FILTER_5])/10)
-  b6 = tf.Variable(tf.ones([NUM_NEURON_1])/10)
-  b7 = tf.Variable(tf.ones([NUM_NEURON_2])/10)
-  b8 = tf.Variable(tf.ones([K])/10)
+  b1 = tf.Variable(tf.constant(0.0, shape=[NUM_FILTER_1], dtype=tf.float32), trainable=True, name='b1')
+  b2 = tf.Variable(tf.constant(0.1, shape=[NUM_FILTER_2], dtype=tf.float32), trainable=True, name='b2')
+  b3 = tf.Variable(tf.constant(0.0, shape=[NUM_FILTER_3], dtype=tf.float32), trainable=True, name='b3')
+  b4 = tf.Variable(tf.constant(0.1, shape=[NUM_FILTER_4], dtype=tf.float32), trainable=True, name='b4')
+  b5 = tf.Variable(tf.constant(0.1, shape=[NUM_FILTER_5], dtype=tf.float32), trainable=True, name='b5')
+  b6 = tf.Variable(tf.constant(0.1, shape=[NUM_NEURON_1], dtype=tf.float32), trainable=True, name='b6')
+  b7 = tf.Variable(tf.constant(0.1, shape=[NUM_NEURON_2], dtype=tf.float32), trainable=True, name='b7')
+  b8 = tf.Variable(tf.constant(0.0, shape=[K], dtype=tf.float32), trainable=True, name='b8')
+
+  #b1 = tf.Variable(tf.ones([NUM_FILTER_1])/10)
+  #b2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
+  #b3 = tf.Variable(tf.ones([NUM_FILTER_3])/10)
+  #b4 = tf.Variable(tf.ones([NUM_FILTER_4])/10)
+  #b5 = tf.Variable(tf.ones([NUM_FILTER_5])/10)
+  #b6 = tf.Variable(tf.ones([NUM_NEURON_1])/10)
+  #b7 = tf.Variable(tf.ones([NUM_NEURON_2])/10)
+  #b8 = tf.Variable(tf.ones([K])/10)
 
 
   #===== architecture =====#
   conv1 = tf.nn.relu(tf.nn.conv2d(X,  W1, strides=[1,4,4,1], padding='SAME')+b1)
   pool1 = tf.nn.max_pool(conv1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
-  norm1 = tf.nn.lrn(pool1, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  norm1 = tf.nn.lrn(pool1, alpha=2e-4, beta=0.75, depth_radius=2, bias=1.0)
 
   conv2 = tf.nn.relu(tf.nn.conv2d(norm1, W2, strides=[1,1,1,1], padding='SAME')+b2)
   pool2 = tf.nn.max_pool(conv2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
-  norm2 = tf.nn.lrn(pool2, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  norm2 = tf.nn.lrn(pool2, alpha=2e-4, beta=0.75, depth_radius=2, bias=1.0)
 
   conv3 = tf.nn.relu(tf.nn.conv2d(norm2, W3, strides=[1,1,1,1], padding='SAME')+b3)
   conv4 = tf.nn.relu(tf.nn.conv2d(conv3, W4, strides=[1,1,1,1], padding='SAME')+b4)
