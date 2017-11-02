@@ -128,7 +128,7 @@ def batchRead(image_name, class_dict, mean_img, pool):
   #convert to one hot labels
   train_y = np.zeros((mini_batch,K))
   #print class_dict
-  for i in range(0, len(batch_idx)):
+  for i in range(0, mini_batch):
     image_class_name = image_name[batch_idx[i]].split("_")[0]
     #print i
     #print image_class_name
@@ -185,7 +185,7 @@ def setAsynBatchRead(image_name, class_dict, pool, mean_img):
 
   #convert to one hot labels
   train_y = np.zeros((mini_batch,K))
-  for i in range(0, len(batch_idx)):
+  for i in range(0, mini_batch):
     image_class_name = image_name[batch_idx[i]].split("_")[0]
     train_y[i][int(class_dict[image_class_name])] = 1
 
@@ -297,7 +297,7 @@ if __name__ == '__main__':
   DROPOUT_PROB_1 = 1.00
   DROPOUT_PROB_2 = 1.00
 
-  LEARNING_RATE = 1e-2
+  LEARNING_RATE = 9e-3
  
   reg = 0 # regularization strength
 
@@ -377,26 +377,26 @@ if __name__ == '__main__':
   #W8   = tf.get_variable("W8", shape=[NUM_NEURON_2,K], initializer=tf.contrib.layers.xavier_initializer())
 
 
-  b1_1 = tf.Variable(tf.zeros([NUM_FILTER_1]))
-  b1_2 = tf.Variable(tf.zeros([NUM_FILTER_1]))
+  b1_1 = tf.Variable(tf.constant(0.0, shape=[NUM_FILTER_1], dtype=tf.float32), trainable=True, name='b1_1')
+  b1_2 = tf.Variable(tf.constant(0.0, shape=[NUM_FILTER_1], dtype=tf.float32), trainable=True, name='b1_2')
 
-  b2_1 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
-  b2_2 = tf.Variable(tf.ones([NUM_FILTER_2])/10)
+  b2_1 = tf.Variable(tf.constant(0.1, shape=[NUM_FILTER_2], dtype=tf.float32), trainable=True, name='b2_1')
+  b2_2 = tf.Variable(tf.constant(0.1, shape=[NUM_FILTER_2], dtype=tf.float32), trainable=True, name='b2_2')
 
-  b3_1 = tf.Variable(tf.zeros([NUM_FILTER_3]))
-  b3_2 = tf.Variable(tf.zeros([NUM_FILTER_3]))
+  b3_1 = tf.Variable(tf.constant(0.0, shape=[NUM_FILTER_3], dtype=tf.float32), trainable=True, name='b3_1')
+  b3_2 = tf.Variable(tf.constant(0.0, shape=[NUM_FILTER_3], dtype=tf.float32), trainable=True, name='b3_2')
 
-  b4_1 = tf.Variable(tf.ones([NUM_FILTER_4])/10)
-  b4_2 = tf.Variable(tf.ones([NUM_FILTER_4])/10)
+  b4_1 = tf.Variable(tf.constant(0.1, shape=[NUM_FILTER_4], dtype=tf.float32), trainable=True, name='b4_1')
+  b4_2 = tf.Variable(tf.constant(0.1, shape=[NUM_FILTER_4], dtype=tf.float32), trainable=True, name='b4_2')
 
-  b5_1 = tf.Variable(tf.ones([NUM_FILTER_5])/10)
-  b5_2 = tf.Variable(tf.ones([NUM_FILTER_5])/10)
+  b5_1 = tf.Variable(tf.constant(0.1, shape=[NUM_FILTER_5], dtype=tf.float32), trainable=True, name='b5_1')
+  b5_2 = tf.Variable(tf.constant(0.1, shape=[NUM_FILTER_5], dtype=tf.float32), trainable=True, name='b5_2')
 
-  b6   = tf.Variable(tf.ones([NUM_NEURON_1])/10)
+  b6   = tf.Variable(tf.constant(0.1, shape=[NUM_NEURON_1], dtype=tf.float32), trainable=True, name='b6')
 
-  b7   = tf.Variable(tf.ones([NUM_NEURON_2])/10)
+  b7   = tf.Variable(tf.constant(0.1, shape=[NUM_NEURON_2], dtype=tf.float32), trainable=True, name='b7')
 
-  b8 = tf.Variable(tf.zeros([K]))
+  b8   = tf.Variable(tf.constant(0.0, shape=[K], dtype=tf.float32), trainable=True, name='b8')
 
 
 
@@ -462,6 +462,7 @@ if __name__ == '__main__':
 
   for var in tf.trainable_variables():
     print var
+
 
   #diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   #reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
