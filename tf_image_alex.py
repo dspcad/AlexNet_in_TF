@@ -294,10 +294,10 @@ if __name__ == '__main__':
   NUM_NEURON_1 = 4096
   NUM_NEURON_2 = 4096
 
-  DROPOUT_PROB_1 = 1.00
-  DROPOUT_PROB_2 = 1.00
+  DROPOUT_PROB_1 = 0.50
+  DROPOUT_PROB_2 = 0.50
 
-  LEARNING_RATE = 9e-3
+  LEARNING_RATE = 1e-2
  
   reg = 0 # regularization strength
 
@@ -444,7 +444,7 @@ if __name__ == '__main__':
   pool5_2 = tf.nn.max_pool(conv5_2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
 
-  cross5 = tf.concat([pool5_1, pool5_2], 1)
+  cross5 = tf.concat([pool5_1, pool5_2], 3)
   YY = tf.reshape(cross5, shape=[-1,6*6*NUM_FILTER_5*2])
 
   #===== Layer 6 =====#
@@ -472,11 +472,11 @@ if __name__ == '__main__':
   total_loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
  
 
-  global_step = tf.Variable(0, trainable=False)
-  learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step,
-                                             1000000, 0.9, staircase=True)
+  #global_step = tf.Variable(0, trainable=False)
+  #learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step,
+  #                                           1000000, 0.9, staircase=True)
 
-  train_step = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True).minimize(total_loss, global_step=global_step)
+  train_step = tf.train.MomentumOptimizer(LEARNING_RATE, 0.9, use_nesterov=True).minimize(total_loss)
   #train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
   #train_step = tf.train.AdamOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
 
@@ -525,9 +525,7 @@ if __name__ == '__main__':
       train_step.run(feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
       if itr % 10 == 0:
         print "Iter %d:  learning rate: %f  dropout: (%.1f %.1f) cross entropy: %f total loss: %f  accuracy: %f" % (itr,
-                                                                learning_rate.eval(feed_dict={X: x, Y_: y, 
-                                                                                              keep_prob_1: DROPOUT_PROB_1, 
-                                                                                              keep_prob_2: DROPOUT_PROB_2}),
+                                                                LEARNING_RATE, 
                                                                 DROPOUT_PROB_1,
                                                                 DROPOUT_PROB_2,
                                                                 cross_entropy.eval(feed_dict={X: x, Y_: y, 
