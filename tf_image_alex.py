@@ -146,8 +146,8 @@ def batchRead(class_name, pool):
   batch_idx = np.random.randint(0, K, size=mini_batch)
   #print batch_idx
   #batch_idx = np.arange(mini_batch)
-  dirpath = '/home/hhwu/ImageNet/train/'
-  #dirpath = '/mnt/ramdisk/crop_train/'
+  #dirpath = '/home/hhwu/ImageNet/train/'
+  dirpath = '/mnt/ramdisk/crop_train/'
 
   #convert to one hot labels
   train_y = np.zeros((mini_batch,K))
@@ -160,34 +160,34 @@ def batchRead(class_name, pool):
 
     #print "test_y[%d][%d] = %d" % (i,int(class_dict[image_class_name]),test_y[i][int(class_dict[image_class_name])])
 
-  img_batch = batchCroppedImgRead("Thread-0", dirpath, class_name, batch_idx)
+  #img_batch = batchCroppedImgRead("Thread-0", dirpath, class_name, batch_idx)
 
-  #async_result_0 = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, class_name, batch_idx[:int(mini_batch/8)]))
-  #async_result_1 = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, class_name, batch_idx[int(mini_batch/8):int(2*mini_batch/8)]))
-  #async_result_2 = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, class_name, batch_idx[int(2*mini_batch/8):int(3*mini_batch/8)]))
-  #async_result_3 = pool.apply_async(batchCroppedImgRead, ("Thread-3", dirpath, class_name, batch_idx[int(3*mini_batch/8):int(4*mini_batch/8)]))
-  #async_result_4 = pool.apply_async(batchCroppedImgRead, ("Thread-4", dirpath, class_name, batch_idx[int(4*mini_batch/8):int(5*mini_batch/8)]))
-  #async_result_5 = pool.apply_async(batchCroppedImgRead, ("Thread-5", dirpath, class_name, batch_idx[int(5*mini_batch/8):int(6*mini_batch/8)]))
-  #async_result_6 = pool.apply_async(batchCroppedImgRead, ("Thread-6", dirpath, class_name, batch_idx[int(6*mini_batch/8):int(7*mini_batch/8)]))
-  #async_result_7 = pool.apply_async(batchCroppedImgRead, ("Thread-7", dirpath, class_name, batch_idx[int(7*mini_batch/8):]))
+  async_result_0 = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, class_name, batch_idx[:int(mini_batch/8)]))
+  async_result_1 = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, class_name, batch_idx[int(mini_batch/8):int(2*mini_batch/8)]))
+  async_result_2 = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, class_name, batch_idx[int(2*mini_batch/8):int(3*mini_batch/8)]))
+  async_result_3 = pool.apply_async(batchCroppedImgRead, ("Thread-3", dirpath, class_name, batch_idx[int(3*mini_batch/8):int(4*mini_batch/8)]))
+  async_result_4 = pool.apply_async(batchCroppedImgRead, ("Thread-4", dirpath, class_name, batch_idx[int(4*mini_batch/8):int(5*mini_batch/8)]))
+  async_result_5 = pool.apply_async(batchCroppedImgRead, ("Thread-5", dirpath, class_name, batch_idx[int(5*mini_batch/8):int(6*mini_batch/8)]))
+  async_result_6 = pool.apply_async(batchCroppedImgRead, ("Thread-6", dirpath, class_name, batch_idx[int(6*mini_batch/8):int(7*mini_batch/8)]))
+  async_result_7 = pool.apply_async(batchCroppedImgRead, ("Thread-7", dirpath, class_name, batch_idx[int(7*mini_batch/8):]))
 
-  #img_batch    = async_result_0.get()
-  #return_val_1 = async_result_1.get()
-  #return_val_2 = async_result_2.get()
-  #return_val_3 = async_result_3.get()
-  #return_val_4 = async_result_4.get()
-  #return_val_5 = async_result_5.get()
-  #return_val_6 = async_result_6.get()
-  #return_val_7 = async_result_7.get()
+  img_batch    = async_result_0.get()
+  return_val_1 = async_result_1.get()
+  return_val_2 = async_result_2.get()
+  return_val_3 = async_result_3.get()
+  return_val_4 = async_result_4.get()
+  return_val_5 = async_result_5.get()
+  return_val_6 = async_result_6.get()
+  return_val_7 = async_result_7.get()
 
 
-  #img_batch = np.vstack((img_batch, return_val_1))
-  #img_batch = np.vstack((img_batch, return_val_2))
-  #img_batch = np.vstack((img_batch, return_val_3))
-  #img_batch = np.vstack((img_batch, return_val_4))
-  #img_batch = np.vstack((img_batch, return_val_5))
-  #img_batch = np.vstack((img_batch, return_val_6))
-  #img_batch = np.vstack((img_batch, return_val_7))
+  img_batch = np.vstack((img_batch, return_val_1))
+  img_batch = np.vstack((img_batch, return_val_2))
+  img_batch = np.vstack((img_batch, return_val_3))
+  img_batch = np.vstack((img_batch, return_val_4))
+  img_batch = np.vstack((img_batch, return_val_5))
+  img_batch = np.vstack((img_batch, return_val_6))
+  img_batch = np.vstack((img_batch, return_val_7))
  
    
 
@@ -263,8 +263,8 @@ def setAsynBatchRead(class_name, pool):
   #print batch_idx
 
   #batch_idx = np.arange(mini_batch)
-  #dirpath = '/mnt/ramdisk/crop_train/'
-  dirpath = '/home/hhwu/ImageNet/train/'
+  dirpath = '/mnt/ramdisk/crop_train/'
+  #dirpath = '/home/hhwu/ImageNet/train/'
 
 
   #convert to one hot labels
@@ -356,7 +356,7 @@ if __name__ == '__main__':
   #########################################
   #  Configuration of CNN architecture    #
   #########################################
-  mini_batch = 128
+  mini_batch = 256
 
   K = 1000 # number of classes
   NUM_FILTER_1 = 96
@@ -371,7 +371,7 @@ if __name__ == '__main__':
   DROPOUT_PROB_1 = 0.50
   DROPOUT_PROB_2 = 0.50
 
-  LEARNING_RATE = 1e-3
+  LEARNING_RATE = 1e-2
  
   LMBDA    = 5e-4
 
@@ -463,11 +463,12 @@ if __name__ == '__main__':
   fc2 = tf.nn.relu(tf.matmul(fc1_drop,W7)+b7)
   fc2_drop = tf.nn.dropout(fc2, keep_prob_1)
 
-  Y  = tf.nn.softmax(tf.matmul(fc2_drop,W8)+b8)
+  fc3 = tf.matmul(fc2_drop,W8)+b8
+  Y   = tf.nn.softmax(fc3)
 
 
 
-  cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y))
+  cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=fc3))
   l2_loss = tf.reduce_sum(LMBDA * tf.stack([tf.nn.l2_loss(v) for v in tf.get_collection('weights')]))
   total_loss = cross_entropy + l2_loss
 
@@ -525,22 +526,22 @@ if __name__ == '__main__':
     #print("Model restored.")
 
 
-    #x, y = batchRead(class_name, pool)
+    x, y = batchRead(class_name, pool)
     wnid_labels, _ = tu.load_imagenet_meta('/home/hhwu/ImageNet/ILSVRC2012_devkit_t12/data/meta.mat')
     for itr in xrange(1000000):
       #x, y = batchRead(image_name, class_dict, mean_img, pool)
 
 
       #print y
-      #asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7, asyn_train_y = setAsynBatchRead(class_name, pool)
+      asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7, asyn_train_y = setAsynBatchRead(class_name, pool)
       #start_time = time.time()
-      x, y = tu.read_batch(mini_batch, "/home/hhwu/ImageNet/train/", wnid_labels)
+      #x, y = tu.read_batch(mini_batch, "/home/hhwu/ImageNet/train/", wnid_labels)
       _, step = sess.run([train_step, global_step], feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
       #x, y = batchRead(class_name, pool)
       #elapsed_time = time.time() - start_time
       #print "Time for async read and training: %f" % elapsed_time
-      #x = getAsynBatchRead(asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7)
-      #y = asyn_train_y
+      x = getAsynBatchRead(asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7)
+      y = asyn_train_y
       
 
       #print train_step
