@@ -279,8 +279,7 @@ if __name__ == '__main__':
   NUM_NEURON_1 = 4096
   NUM_NEURON_2 = 4096
 
-  DROPOUT_PROB_1 = 0.50
-  DROPOUT_PROB_2 = 0.50
+  DROPOUT_PROB = 0.50
 
   LEARNING_RATE = 1e-2
   NUM_IMAGES = 1281167  
@@ -289,8 +288,8 @@ if __name__ == '__main__':
 
 
   # Dropout probability
-  keep_prob_1 = tf.placeholder(tf.float32)
-  keep_prob_2 = tf.placeholder(tf.float32)
+  keep_prob     = tf.placeholder(tf.float32)
+  learning_rate = tf.placeholder(tf.float32)
 
   # initialize parameters randomly
 
@@ -318,50 +317,6 @@ if __name__ == '__main__':
 
   W8    = _variable_with_weight_decay('W8', shape=[NUM_NEURON_2,K], stddev=1e-2, wd=5e-4)
   
-
-  #W1_1  = tf.Variable(tf.truncated_normal([11,11,3,NUM_FILTER_1], stddev=0.01))
-  #W1_2  = tf.Variable(tf.truncated_normal([11,11,3,NUM_FILTER_1], stddev=0.01))
-
-  #W2_1  = tf.Variable(tf.truncated_normal([5,5,NUM_FILTER_1,NUM_FILTER_2], stddev=0.01))
-  #W2_2  = tf.Variable(tf.truncated_normal([5,5,NUM_FILTER_1,NUM_FILTER_2], stddev=0.01))
-
-  #W3_1  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2*2,NUM_FILTER_3], stddev=0.01))
-  #W3_2  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_2*2,NUM_FILTER_3], stddev=0.01))
-
-  #W4_1  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_3,NUM_FILTER_4], stddev=0.01))
-  #W4_2  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_3,NUM_FILTER_4], stddev=0.01))
-
-  #W5_1  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_4,NUM_FILTER_5], stddev=0.01))
-  #W5_2  = tf.Variable(tf.truncated_normal([3,3,NUM_FILTER_4,NUM_FILTER_5], stddev=0.01))
-
-  #W6    = tf.Variable(tf.truncated_normal([6*6*NUM_FILTER_5*2,NUM_NEURON_1], stddev=0.005))
-
-  #W7    = tf.Variable(tf.truncated_normal([NUM_NEURON_1,NUM_NEURON_2], stddev=0.005))
-
-  #W8    = tf.Variable(tf.truncated_normal([NUM_NEURON_2,K], stddev=0.01))
-
-
-  #W1_1 = tf.get_variable("W1_1", shape=[11,11,3,NUM_FILTER_1], initializer=tf.contrib.layers.xavier_initializer())
-  #W1_2 = tf.get_variable("W1_2", shape=[11,11,3,NUM_FILTER_1], initializer=tf.contrib.layers.xavier_initializer())
-
-  #W2_1 = tf.get_variable("W2_1", shape=[5,5,NUM_FILTER_1,NUM_FILTER_2], initializer=tf.contrib.layers.xavier_initializer())
-  #W2_2 = tf.get_variable("W2_2", shape=[5,5,NUM_FILTER_1,NUM_FILTER_2], initializer=tf.contrib.layers.xavier_initializer())
-
-  #W3_1 = tf.get_variable("W3_1", shape=[3,3,NUM_FILTER_2*2,NUM_FILTER_3], initializer=tf.contrib.layers.xavier_initializer())
-  #W3_2 = tf.get_variable("W3_2", shape=[3,3,NUM_FILTER_2*2,NUM_FILTER_3], initializer=tf.contrib.layers.xavier_initializer())
-
-  #W4_1 = tf.get_variable("W4_1", shape=[3,3,NUM_FILTER_3,NUM_FILTER_4], initializer=tf.contrib.layers.xavier_initializer())
-  #W4_2 = tf.get_variable("W4_2", shape=[3,3,NUM_FILTER_3,NUM_FILTER_4], initializer=tf.contrib.layers.xavier_initializer())
-
-  #W5_1 = tf.get_variable("W5_1", shape=[3,3,NUM_FILTER_4,NUM_FILTER_5], initializer=tf.contrib.layers.xavier_initializer())
-  #W5_2 = tf.get_variable("W5_2", shape=[3,3,NUM_FILTER_4,NUM_FILTER_5], initializer=tf.contrib.layers.xavier_initializer())
-
-  #W6   = tf.get_variable("W6", shape=[6*6*NUM_FILTER_5*2,NUM_NEURON_1], initializer=tf.contrib.layers.xavier_initializer())
-
-  #W7   = tf.get_variable("W7", shape=[NUM_NEURON_1,NUM_NEURON_2], initializer=tf.contrib.layers.xavier_initializer())
-
-  #W8   = tf.get_variable("W8", shape=[NUM_NEURON_2,K], initializer=tf.contrib.layers.xavier_initializer())
-
 
   b1_1 = tf.Variable(tf.constant(0.0, shape=[NUM_FILTER_1], dtype=tf.float32), trainable=True, name='b1_1')
   b1_2 = tf.Variable(tf.constant(0.0, shape=[NUM_FILTER_1], dtype=tf.float32), trainable=True, name='b1_2')
@@ -435,20 +390,20 @@ if __name__ == '__main__':
 
   #===== Layer 6 =====#
   fc1 = tf.nn.relu(tf.matmul(YY,W6)+b6)
-  #fc1_drop = tf.nn.dropout(fc1, keep_prob_1)
+  fc1_drop = tf.nn.dropout(fc1, keep_prob)
 
   #===== Layer 7 =====#
-  fc2 = tf.nn.relu(tf.matmul(fc1,W7)+b7)
-  #fc2_drop = tf.nn.dropout(fc2, keep_prob_1)
+  fc2 = tf.nn.relu(tf.matmul(fc1_drop,W7)+b7)
+  fc2_drop = tf.nn.dropout(fc2, keep_prob)
 
   #===== Layer 8 =====#
-  fc3 = tf.matmul(fc2,W8)+b8             
+  fc3 = tf.matmul(fc2_drop,W8)+b8             
   Y  = tf.nn.softmax(fc3)
 
 
 
-  for var in tf.trainable_variables():
-    print var
+  #for var in tf.trainable_variables():
+  #  print var
 
 
   #diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
@@ -459,11 +414,11 @@ if __name__ == '__main__':
   total_loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
  
 
-  #global_step = tf.Variable(0, trainable=False)
+  global_step = tf.Variable(0, trainable=False)
   #learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step,
   #                                           1000000, 0.9, staircase=True)
 
-  train_step = tf.train.MomentumOptimizer(LEARNING_RATE, 0.9, use_nesterov=True).minimize(total_loss)
+  train_step = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True).minimize(total_loss)
   #train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
   #train_step = tf.train.AdamOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
 
@@ -509,22 +464,21 @@ if __name__ == '__main__':
       asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7, asyn_train_y = setAsynBatchRead(class_name, pool, mean_img)
       #start_time = time.time()
 
-      train_step.run(feed_dict={X: x, Y_: y, keep_prob_1: DROPOUT_PROB_1, keep_prob_2: DROPOUT_PROB_2})
+      train_step.run(feed_dict={X: x, Y_: y, keep_prob: DROPOUT_PROB, learning_rate: LEARNING_RATE})
       if itr % 10 == 0:
-        print "Iter %d:  learning rate: %f  dropout: (%.1f %.1f) cross entropy: %f total loss: %f  accuracy: %f" % (itr,
+        print "Iter %d:  learning rate: %f  dropout: %.1f cross entropy: %f total loss: %f  accuracy: %f" % (itr,
                                                                 LEARNING_RATE, 
-                                                                DROPOUT_PROB_1,
-                                                                DROPOUT_PROB_2,
+                                                                DROPOUT_PROB,
                                                                 cross_entropy.eval(feed_dict={X: x, Y_: y, 
-                                                                                                            keep_prob_1: DROPOUT_PROB_1, 
-                                                                                                            keep_prob_2: DROPOUT_PROB_2}),
+                                                                                                            keep_prob: 1.0, 
+                                                                                                            learning_rate: LEARNING_RATE}),
                                                                 total_loss.eval(feed_dict={X: x, Y_: y, 
-                                                                                                            keep_prob_1: DROPOUT_PROB_1, 
-                                                                                                            keep_prob_2: DROPOUT_PROB_2}),
+                                                                                                            keep_prob: 1.0, 
+                                                                                                            learning_rate: LEARNING_RATE}),
 
                                                                 accuracy.eval(feed_dict={X: x, Y_: y, 
-                                                                                                       keep_prob_1: DROPOUT_PROB_1, 
-                                                                                                       keep_prob_2: DROPOUT_PROB_2}))
+                                                                                                       keep_prob: 1.0, 
+                                                                                                       learning_rate: LEARNING_RATE}))
 
 
 
