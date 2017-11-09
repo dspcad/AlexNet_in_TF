@@ -228,6 +228,13 @@ def getAsynBatchRead(async_result_0, async_result_1, async_result_2, async_resul
   return asyn_img_batch
 
 
+def loadData(file_name):
+  path = "/home1/hhwu/ImageNet/train_serial_data/%s" % file_name
+  fo = open(path, 'rb')
+  train_file = cPickle.load(fo)
+
+  return train_file['data'], train_file['label']
+
 
 
 
@@ -247,6 +254,42 @@ def loadClassName(filename):
 
   return class_name
 
+
+def batchSerialRead(image_itr, data, label):
+  file_number = int(image_itr/file_size)
+  image_idx = image_itr % file_size
+  
+  if image_idx == 0:
+    file_name = "train_%d.tfrecords" % file_number
+    data, label = loadData(file_name)
+  
+
+  img_batch = []
+  for i in range(0,mini_batch):
+    #################################
+    # convert RGB from float to int #
+    #################################
+    croppedImg = cropImg(data[image_idx+i], mean_img)
+
+    if len(img_batch) == 0:
+      img_batch = croppedImg
+    else:
+      img_batch = np.vstack((img_batch, croppedImg))
+
+  img_batch = img_batch.reshape(mini_batch,227,227,3)
+
+
+  train_y = np.zeros((mini_batch,K))
+  for i in range(0, mini_batch):
+    train_y[i][label[image_idx+i]] = 1
+
+
+  image_itr += mini_batch
+
+
+  return img_batch, train_y, image_itr, data, label
+
+
 if __name__ == '__main__':
   print '===== Start loading the mean of ILSVRC2012 ====='
 
@@ -263,11 +306,15 @@ if __name__ == '__main__':
   pool = ThreadPool(processes=8)
   print "Multi-threads begin!"
 
+  
+  
 
+  
   #########################################
   #  Configuration of CNN architecture    #
   #########################################
   mini_batch = 256
+  file_size = 12800
 
   K = 1000 # number of classes
   NUM_FILTER_1 = 48
@@ -453,17 +500,109 @@ if __name__ == '__main__':
   #for i in range(0, mini_batch):
   #  io.imsave("%s_%d.%s" % ("test_img", i, 'jpeg'), x[i])
 
-  with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
+  valid_data_path = "/home1/hhwu/ImageNet/valid.tfrecords"
+  train_data_path = []
+  for i in xrange(0,101):
+    train_data_path.append("/home1/hhwu/ImageNet/tf_data/train_%d.tfrecords" % i)
 
-    x, y = batchRead(class_name, mean_img, pool)
+
+  with tf.Session() as sess:
+    train_feature = {'train/image': tf.FixedLenFeature([], tf.string),
+               'train/label': tf.FixedLenFeature([], tf.int64)}
+    # Create a list of filenames and pass it to a queue
+    train_filename_queue = tf.train.string_input_producer(train_data_path, num_epochs=90)
+    #filename_queue = tf.train.string_input_producer([data_path], num_epochs=1)
+    # Define a reader and read the next record
+    train_reader = tf.TFRecordReader()
+    _, train_serialized_example = train_reader.read(train_filename_queue)
+
+        # Decode the record read by the reader
+    train_features = tf.parse_single_example(train_serialized_example, features=train_feature)
+    # Convert the image data from string back to the numbers
+    train_image = tf.cast(tf.decode_raw(train_features['train/image'], tf.uint8), tf.float32)
+    
+    # Cast label data into int32
+    train_label_idx = tf.cast(train_features['train/label'], tf.int32)
+    train_label = tf.one_hot(train_label_idx, K)
+    # Reshape image data into the original shape
+    train_image = tf.reshape(train_image, [256, 256, 3])
+
+    train_image = cropImg(train_image, mean_img)
+
+    train_images, train_labels = tf.train.shuffle_batch([train_image, train_label], 
+                                                         batch_size=mini_batch, capacity=3*mini_batch, num_threads=8, min_after_dequeue=10)
+
+
+    ################################
+    #       Validation Data        #
+    ################################
+    valid_feature = {'valid/image': tf.FixedLenFeature([], tf.string),
+                     'valid/label': tf.FixedLenFeature([], tf.int64)}
+    # Create a list of filenames and pass it to a queue
+    valid_filename_queue = tf.train.string_input_producer([valid_data_path], num_epochs=90)
+    #filename_queue = tf.train.string_input_producer([data_path], num_epochs=1)
+    # Define a reader and read the next record
+    valid_reader = tf.TFRecordReader()
+    _, valid_serialized_example = valid_reader.read(valid_filename_queue)
+
+        # Decode the record read by the reader
+    valid_features = tf.parse_single_example(valid_serialized_example, features=valid_feature)
+    # Convert the image data from string back to the numbers
+    valid_image = tf.cast(tf.decode_raw(valid_features['valid/image'], tf.uint8), tf.float32)
+    
+    # Cast label data into int32
+    valid_label_idx = tf.cast(valid_features['valid/label'], tf.int32)
+    valid_label = tf.one_hot(valid_label_idx, K)
+    # Reshape image data into the original shape
+    valid_image = tf.reshape(valid_image, [256, 256, 3])
+
+    valid_image = cropImg(valid_image, mean_img)
+
+    valid_images, valid_labels = tf.train.batch([valid_image, valid_label], 
+                                                         batch_size=1000, capacity=50000, num_threads=8)
+
+
+
+
+    #sess.run(tf.global_variables_initializer())
+    # Initialize all global and local variables
+    init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
+    sess.run(init_op)
+
+
+    # Create a coordinator and run all QueueRunner objects
+    coord = tf.train.Coordinator()
+    threads = tf.train.start_queue_runners(coord=coord)
+
+    #x, y = batchRead(class_name, mean_img, pool)
+
+    #test_x = []
+    #test_y = []
+    #for i in range(0,50):
+    #  if i == 0:
+    #    test_x, test_y = sess.run([valid_images, valid_labels])
+    #  else:
+    #    tmp_x, tmp_y = sess.run([valid_images, valid_labels])
+    #    test_x = np.vstack((test_x, tmp_x))
+    #    test_y = np.vstack((test_y, tmp_y))
+
+  
+    #test_x = test_x.reshape(50000,227,227,3)
+    #test_y = test_y.reshape(50000,K)
+
+
+    image_iterator = 0
+    data = []
+    label = []
     for itr in xrange(1000000):
       #x, y = batchRead(image_name, class_dict, mean_img, pool)
 
       #print y
-      asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7, asyn_train_y = setAsynBatchRead(class_name, pool, mean_img)
+      #asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7, asyn_train_y = setAsynBatchRead(class_name, pool, mean_img)
       #start_time = time.time()
 
+      #x, y, image_iterator, data, label = batchSerialRead(image_iterator, data, label)
+      x, y = sess.run([train_images, train_labels])
       train_step.run(feed_dict={X: x, Y_: y, keep_prob: DROPOUT_PROB, learning_rate: LEARNING_RATE})
       if itr % 10 == 0:
         print "Iter %d:  learning rate: %f  dropout: %.1f cross entropy: %f total loss: %f  accuracy: %f" % (itr,
@@ -479,11 +618,15 @@ if __name__ == '__main__':
                                                                 accuracy.eval(feed_dict={X: x, Y_: y, 
                                                                                                        keep_prob: 1.0, 
                                                                                                        learning_rate: LEARNING_RATE}))
+        test_accuracy = 0.0
+        for i in range(0,50):
+          test_x, test_y = sess.run([valid_images, valid_labels])
+          test_accuracy += accuracy.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0, learning_rate: LEARNING_RATE})
+        
+        print "   Validation Accuracy: %f" % (test_accuracy/50)
 
-
-
-      x = getAsynBatchRead(asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7)
-      y = asyn_train_y
+      #x = getAsynBatchRead(asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7)
+      #y = asyn_train_y
 
       #elapsed_time = time.time() - start_time
       #print "Time for async read and training: %f" % elapsed_time
@@ -508,7 +651,9 @@ if __name__ == '__main__':
         epoch_counter = epoch_counter + 1
 
 
-
+    coord.request_stop()
+    coord.join(threads)
+    sess.close()
 
 
 

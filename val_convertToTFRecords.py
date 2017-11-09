@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import cPickle
+import tensorflow as tf
 import numpy as np
 import sys
 import csv
@@ -31,15 +31,15 @@ def loadClassName(filename):
   return class_dict
 
 
+def _int64_feature(value):
+  return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+def _bytes_feature(value):
+  return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
 
 if __name__ == '__main__':
-  datapath = '/mnt/ramdisk/crop_train/'
-  num_images = 1281167
-  file_size = 12800
+  datapath = '/home1/hhwu/ILSVRC2012_img_val/'
   print "Path: ", datapath
-
-  class_dict  = loadClassName('synset.csv')
-
 
   image_name = []
   for dirpath, dirnames, filenames in os.walk(datapath):
@@ -50,8 +50,15 @@ if __name__ == '__main__':
     image_name = filenames
 
 
-  idx = np.random.randint(0,num_images,num_images)
   print "The number of files: %d" % len(image_name)
+
+  out = open("/home1/hhwu/data/ILSVRC2012_validation_ground_truth.txt", 'r')
+  lines = out.readlines()
+
+  print "number of labels: ", len(lines)
+
+  out.close()
+ 
 
 #  data_list = []
 #  for i in idx:
@@ -69,38 +76,46 @@ if __name__ == '__main__':
   data_list  = []
   label_list = []
   data_dict = {}
-  for i in xrange(0,len(idx)):
-    if i % file_size == 0:
-      if i == 0:
-        data_list  = []
-        label_list = []
-      else:
-        output_name = "train_%d.bin" % image_counter
-        ouf = open(output_name, 'w')
-        data_dict = {}
-        data_dict['data'] = data_list
-        data_dict['label'] = label_list
-        cPickle.dump(data_list, ouf, 1)
-        print "File %s is written." % output_name
-        data_list = []
-        label_list = []
-        image_counter += 1
-        print i
-    
-
-    absfile = os.path.join(dirpath, image_name[idx[i]]) 
+  output_name = "valid.tfrecords"
+  writer = tf.python_io.TFRecordWriter(output_name)
+  for i in xrange(0,len(lines)):
+    absfile = os.path.join(dirpath, image_name[i]) 
     target_img = io.imread(absfile)
-    data_list.append(target_img)
-    label_list.append(int(class_dict[image_name[idx[i]].split("_")[0]]))
+ 
+    feature = {'valid/label': _int64_feature(int(lines[i])),
+               'valid/image': _bytes_feature(tf.compat.as_bytes(target_img.tostring()))}
+    # Create an example protocol buffer
+    example = tf.train.Example(features=tf.train.Features(feature=feature))
+    
+    # Serialize to string and write on the file
+    writer.write(example.SerializeToString())
+
+  write.close()
+
     #print class_name[image_name[idx[i]].split('_')[0]]
     #print image_name[idx[i]].split('_')[0]
-
-  output_name = "train_%d.bin" % image_counter
-  ouf = open(output_name, 'w')
-  cPickle.dump(data_list, ouf, 1)
-  print "File %s is written." % output_name
-
-
+#
+#  #output_name = "train_%d.bin" % image_counter
+#  #ouf = open(output_name, 'w')
+#  #cPickle.dump(data_dict, ouf, 1)
+#  #print "File %s is written." % output_name
+#
+#  output_name = "train_%d.tfrecords" % image_counter
+#  writer = tf.python_io.TFRecordWriter(output_name)
+#  data_list
+#  label_list
+#
+#  for j in xrange(0, len(label_list)):
+#    feature = {'train/label': _int64_feature(label_list[j]),
+#               'train/image': _bytes_feature(tf.compat.as_bytes(data_list[j].tostring()))}
+#    # Create an example protocol buffer
+#    example = tf.train.Example(features=tf.train.Features(feature=feature))
+#  
+#    # Serialize to string and write on the file
+#    writer.write(example.SerializeToString())
+#
+#  print "File %s is written." % output_name
+ 
 
 
 #  data_list = []
