@@ -121,120 +121,6 @@ def batchCroppedImgRead(thread_name, dirpath, class_name, mean_img, partial_batc
 
   return img_batch
 
-def batchRead(class_name, mean_img, pool):
-  #batch_idx = np.random.randint(0,len(image_name),mini_batch)
-  batch_idx = np.random.randint(0, K, size=mini_batch)
-  #batch_idx = np.arange(mini_batch)
-  #dirpath = '/home/hhwu/ImageNet/train/'
-  dirpath = '/mnt/ramdisk/crop_train/'
-
-
-  #convert to one hot labels
-  train_y = np.zeros((mini_batch,K))
-  for i in range(0, mini_batch):
-    train_y[i][batch_idx[i]] = 1
-
-    #print "test_y[%d][%d] = %d" % (i,int(class_dict[image_class_name]),test_y[i][int(class_dict[image_class_name])])
-
-  #img_batch = batchCroppedImgRead("Thread-0", dirpath, class_name, mean_img, batch_idx)
-
-  async_result_0 = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, class_name, mean_img, batch_idx[:int(mini_batch/8)]))
-  async_result_1 = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, class_name, mean_img, batch_idx[int(mini_batch/8):int(2*mini_batch/8)]))
-  async_result_2 = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, class_name, mean_img, batch_idx[int(2*mini_batch/8):int(3*mini_batch/8)]))
-  async_result_3 = pool.apply_async(batchCroppedImgRead, ("Thread-3", dirpath, class_name, mean_img, batch_idx[int(3*mini_batch/8):int(4*mini_batch/8)]))
-  async_result_4 = pool.apply_async(batchCroppedImgRead, ("Thread-4", dirpath, class_name, mean_img, batch_idx[int(4*mini_batch/8):int(5*mini_batch/8)]))
-  async_result_5 = pool.apply_async(batchCroppedImgRead, ("Thread-5", dirpath, class_name, mean_img, batch_idx[int(5*mini_batch/8):int(6*mini_batch/8)]))
-  async_result_6 = pool.apply_async(batchCroppedImgRead, ("Thread-6", dirpath, class_name, mean_img, batch_idx[int(6*mini_batch/8):int(7*mini_batch/8)]))
-  async_result_7 = pool.apply_async(batchCroppedImgRead, ("Thread-7", dirpath, class_name, mean_img, batch_idx[int(7*mini_batch/8):]))
-
-  img_batch    = async_result_0.get()
-  return_val_1 = async_result_1.get()
-  return_val_2 = async_result_2.get()
-  return_val_3 = async_result_3.get()
-  return_val_4 = async_result_4.get()
-  return_val_5 = async_result_5.get()
-  return_val_6 = async_result_6.get()
-  return_val_7 = async_result_7.get()
-
-
-  img_batch = np.vstack((img_batch, return_val_1))
-  img_batch = np.vstack((img_batch, return_val_2))
-  img_batch = np.vstack((img_batch, return_val_3))
-  img_batch = np.vstack((img_batch, return_val_4))
-  img_batch = np.vstack((img_batch, return_val_5))
-  img_batch = np.vstack((img_batch, return_val_6))
-  img_batch = np.vstack((img_batch, return_val_7))
- 
-   
-
-  
-  img_batch = img_batch.reshape(mini_batch,227,227,3)
-
-  #for i in range(0, mini_batch):
-  #  io.imsave("%s_%d.%s" % ("test_img", i, 'jpeg'), img_batch[i])
-  #img_batch = img_batch - mean_img
-  return img_batch, train_y
-
-
-def setAsynBatchRead(class_name, pool, mean_img):
-  #batch_idx = np.random.randint(0,len(image_name),mini_batch)
-  #batch_idx = np.arange(mini_batch)
-  batch_idx = np.random.randint(0, K, size=mini_batch) 
-  dirpath = '/mnt/ramdisk/crop_train/'
-
-
-  #convert to one hot labels
-  train_y = np.zeros((mini_batch,K))
-  for i in range(0, len(batch_idx)):
-    train_y[i][batch_idx[i]] = 1
-
-
-
-  async_result_0 = pool.apply_async(batchCroppedImgRead, ("Thread-0", dirpath, class_name, mean_img, batch_idx[:int(mini_batch/8)]))
-  async_result_1 = pool.apply_async(batchCroppedImgRead, ("Thread-1", dirpath, class_name, mean_img, batch_idx[int(mini_batch/8):int(2*mini_batch/8)]))
-  async_result_2 = pool.apply_async(batchCroppedImgRead, ("Thread-2", dirpath, class_name, mean_img, batch_idx[int(2*mini_batch/8):int(3*mini_batch/8)]))
-  async_result_3 = pool.apply_async(batchCroppedImgRead, ("Thread-3", dirpath, class_name, mean_img, batch_idx[int(3*mini_batch/8):int(4*mini_batch/8)]))
-  async_result_4 = pool.apply_async(batchCroppedImgRead, ("Thread-4", dirpath, class_name, mean_img, batch_idx[int(4*mini_batch/8):int(5*mini_batch/8)]))
-  async_result_5 = pool.apply_async(batchCroppedImgRead, ("Thread-5", dirpath, class_name, mean_img, batch_idx[int(5*mini_batch/8):int(6*mini_batch/8)]))
-  async_result_6 = pool.apply_async(batchCroppedImgRead, ("Thread-6", dirpath, class_name, mean_img, batch_idx[int(6*mini_batch/8):int(7*mini_batch/8)]))
-  async_result_7 = pool.apply_async(batchCroppedImgRead, ("Thread-7", dirpath, class_name, mean_img, batch_idx[int(7*mini_batch/8):]))
-
-  return async_result_0, async_result_1, async_result_2, async_result_3, async_result_4, async_result_5, async_result_6, async_result_7, train_y
-
-
-def getAsynBatchRead(async_result_0, async_result_1, async_result_2, async_result_3, async_result_4, async_result_5, async_result_6, async_result_7):
-  asyn_img_batch = async_result_0.get()
-  return_val_1   = async_result_1.get()
-  return_val_2   = async_result_2.get()
-  return_val_3   = async_result_3.get()
-  return_val_4   = async_result_4.get()
-  return_val_5   = async_result_5.get()
-  return_val_6   = async_result_6.get()
-  return_val_7   = async_result_7.get()
-
-
-  asyn_img_batch = np.vstack((asyn_img_batch, return_val_1))
-  asyn_img_batch = np.vstack((asyn_img_batch, return_val_2))
-  asyn_img_batch = np.vstack((asyn_img_batch, return_val_3))
-  asyn_img_batch = np.vstack((asyn_img_batch, return_val_4))
-  asyn_img_batch = np.vstack((asyn_img_batch, return_val_5))
-  asyn_img_batch = np.vstack((asyn_img_batch, return_val_6))
-  asyn_img_batch = np.vstack((asyn_img_batch, return_val_7))
- 
-  
-  asyn_img_batch = asyn_img_batch.reshape(mini_batch,227,227,3)
-  #asyn_img_batch = asyn_img_batch - mean_img
-
-  return asyn_img_batch
-
-
-def loadData(file_name):
-  path = "/home1/hhwu/ImageNet/train_serial_data/%s" % file_name
-  fo = open(path, 'rb')
-  train_file = cPickle.load(fo)
-
-  return train_file['data'], train_file['label']
-
 
 
 
@@ -254,40 +140,6 @@ def loadClassName(filename):
 
   return class_name
 
-
-def batchSerialRead(image_itr, data, label):
-  file_number = int(image_itr/file_size)
-  image_idx = image_itr % file_size
-  
-  if image_idx == 0:
-    file_name = "train_%d.tfrecords" % file_number
-    data, label = loadData(file_name)
-  
-
-  img_batch = []
-  for i in range(0,mini_batch):
-    #################################
-    # convert RGB from float to int #
-    #################################
-    croppedImg = cropImg(data[image_idx+i], mean_img)
-
-    if len(img_batch) == 0:
-      img_batch = croppedImg
-    else:
-      img_batch = np.vstack((img_batch, croppedImg))
-
-  img_batch = img_batch.reshape(mini_batch,227,227,3)
-
-
-  train_y = np.zeros((mini_batch,K))
-  for i in range(0, mini_batch):
-    train_y[i][label[image_idx+i]] = 1
-
-
-  image_itr += mini_batch
-
-
-  return img_batch, train_y, image_itr, data, label
 
 
 if __name__ == '__main__':
@@ -314,7 +166,6 @@ if __name__ == '__main__':
   #  Configuration of CNN architecture    #
   #########################################
   mini_batch = 256
-  file_size = 12800
 
   K = 1000 # number of classes
   NUM_FILTER_1 = 48
@@ -336,7 +187,7 @@ if __name__ == '__main__':
 
   # Dropout probability
   keep_prob     = tf.placeholder(tf.float32)
-  learning_rate = tf.placeholder(tf.float32)
+  #learning_rate = tf.placeholder(tf.float32)
 
   # initialize parameters randomly
 
@@ -462,8 +313,8 @@ if __name__ == '__main__':
  
 
   global_step = tf.Variable(0, trainable=False)
-  #learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step,
-  #                                           1000000, 0.9, staircase=True)
+  learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step,
+                                             100000, 0.1, staircase=True)
 
   train_step = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True).minimize(total_loss)
   #train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
@@ -507,6 +358,9 @@ if __name__ == '__main__':
 
 
   with tf.Session() as sess:
+    ################################
+    #        Training Data         #
+    ################################
     train_feature = {'train/image': tf.FixedLenFeature([], tf.string),
                'train/label': tf.FixedLenFeature([], tf.int64)}
     # Create a list of filenames and pass it to a queue
@@ -539,7 +393,7 @@ if __name__ == '__main__':
     valid_feature = {'valid/image': tf.FixedLenFeature([], tf.string),
                      'valid/label': tf.FixedLenFeature([], tf.int64)}
     # Create a list of filenames and pass it to a queue
-    valid_filename_queue = tf.train.string_input_producer([valid_data_path], num_epochs=90)
+    valid_filename_queue = tf.train.string_input_producer([valid_data_path], num_epochs=500)
     #filename_queue = tf.train.string_input_producer([data_path], num_epochs=1)
     # Define a reader and read the next record
     valid_reader = tf.TFRecordReader()
@@ -594,7 +448,7 @@ if __name__ == '__main__':
     image_iterator = 0
     data = []
     label = []
-    for itr in xrange(1000000):
+    for itr in xrange(100000):
       #x, y = batchRead(image_name, class_dict, mean_img, pool)
 
       #print y
@@ -603,40 +457,35 @@ if __name__ == '__main__':
 
       #x, y, image_iterator, data, label = batchSerialRead(image_iterator, data, label)
       x, y = sess.run([train_images, train_labels])
-      train_step.run(feed_dict={X: x, Y_: y, keep_prob: DROPOUT_PROB, learning_rate: LEARNING_RATE})
-      if itr % 10 == 0:
+      train_step.run(feed_dict={X: x, Y_: y, keep_prob: DROPOUT_PROB})
+      #elapsed_time = time.time() - start_time
+      #print "Time for training: %f" % elapsed_time
+      if itr % 20 == 0:
         print "Iter %d:  learning rate: %f  dropout: %.1f cross entropy: %f total loss: %f  accuracy: %f" % (itr,
-                                                                LEARNING_RATE, 
+                                                                learning_rate.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}),
                                                                 DROPOUT_PROB,
-                                                                cross_entropy.eval(feed_dict={X: x, Y_: y, 
-                                                                                                            keep_prob: 1.0, 
-                                                                                                            learning_rate: LEARNING_RATE}),
-                                                                total_loss.eval(feed_dict={X: x, Y_: y, 
-                                                                                                            keep_prob: 1.0, 
-                                                                                                            learning_rate: LEARNING_RATE}),
+                                                                cross_entropy.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}),
+                                                                total_loss.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}),
+                                                                accuracy.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}))
 
-                                                                accuracy.eval(feed_dict={X: x, Y_: y, 
-                                                                                                       keep_prob: 1.0, 
-                                                                                                       learning_rate: LEARNING_RATE}))
+      if itr % 1000 == 0 and itr != 0:
         test_accuracy = 0.0
         for i in range(0,50):
           test_x, test_y = sess.run([valid_images, valid_labels])
-          test_accuracy += accuracy.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0, learning_rate: LEARNING_RATE})
+          test_accuracy += accuracy.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0})
         
         print "   Validation Accuracy: %f" % (test_accuracy/50)
 
       #x = getAsynBatchRead(asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7)
       #y = asyn_train_y
 
-      #elapsed_time = time.time() - start_time
-      #print "Time for async read and training: %f" % elapsed_time
       
 
       #print train_step
  
       #print "W9:"
       #print sess.run(W9) 
-      if itr % 1000 == 0 and itr != 0:
+      if itr % 10000 == 0 and itr != 0:
         model_name = "./checkpoint/model_%d.ckpt" % itr
         save_path = saver.save(sess, model_name)
         #save_path = saver.save(sess, "./checkpoint/model.ckpt")
