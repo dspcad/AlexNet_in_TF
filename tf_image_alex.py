@@ -321,6 +321,7 @@ if __name__ == '__main__':
   #train_step = tf.train.AdamOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
 
   correct_prediction = tf.equal(tf.argmax(Y, 1), tf.argmax(Y_, 1))
+  correct_sum = tf.reduce_sum(tf.cast(correct_prediction, tf.uint8))
   accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 
@@ -468,17 +469,36 @@ if __name__ == '__main__':
                                                                 total_loss.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}),
                                                                 accuracy.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}))
 
-      if itr % 1000 == 0 and itr != 0:
-        test_accuracy = 0.0
+      if itr % 500 == 0:
+        valid_accuracy = 0.0
         for i in range(0,50):
           test_x, test_y = sess.run([valid_images, valid_labels])
-          test_accuracy += accuracy.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0})
-        
-        print "   Validation Accuracy: %f" % (test_accuracy/50)
+          valid_accuracy += correct_sum.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0})
+        print "Validation Accuracy: %f (%.1f/50000)" %  (valid_accuracy/50000, valid_accuracy)
+       
+        #print "   Validation Accuracy: %f" % (test_accuracy/50)
+       #test_x, test_y = sess.run([valid_images, valid_labels])
+        #print "   Validation Accuracy: %f" % accuracy.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0})
 
       #x = getAsynBatchRead(asyn_0, asyn_1, asyn_2, asyn_3, asyn_4, asyn_5, asyn_6, asyn_7)
       #y = asyn_train_y
 
+       #  for i in range(0,50):
+       #   tmp_test_x, tmp_test_y = sess.run([valid_images, valid_labels])
+       #   if i == 0:
+       #     test_x = tmp_test_x
+       #     test_y = tmp_test_y
+       #   else:
+       #     test_x = np.vstack((test_x, tmp_test_x))
+       #     test_y = np.vstack((test_y, tmp_test_y))
+
+       # print "Collecting data doen."
+       # test_x = test.reshape((50000,227,227,3))
+       # test_x = tf.reshape(test_x, [50000, 256, 256, 3])
+       # test_y = tf.reshape(test_y, [50000, K])
+       # #test_y = test.reshape((50000,K))
+       # tmp_accracy = accuracy.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0})
+       # print "   tmp Validation Accuracy: %f" %  tmp_accracy
       
 
       #print train_step

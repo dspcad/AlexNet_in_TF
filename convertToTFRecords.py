@@ -71,8 +71,6 @@ if __name__ == '__main__':
 #  print "File %s is written." % output_name
  
   image_counter = 0
-  data_list  = []
-  label_list = []
   data_dict = {}
   for i in xrange(0,len(idx)):
     if i % file_size == 0:
@@ -82,8 +80,6 @@ if __name__ == '__main__':
       else:
         output_name = "train_%d.tfrecords" % image_counter
         writer = tf.python_io.TFRecordWriter(output_name)
-        data_list
-        label_list
 
         for j in xrange(0, len(label_list)):
           feature = {'train/label': _int64_feature(label_list[j]),
