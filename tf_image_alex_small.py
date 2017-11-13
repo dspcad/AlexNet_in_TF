@@ -171,7 +171,7 @@ if __name__ == '__main__':
   NUM_FILTER_1 = 12
   NUM_FILTER_2 = 128
 
-  DROPOUT_PROB = 1.00
+  DROPOUT_PROB = 0.50
 
   LEARNING_RATE = 1e-2
   NUM_IMAGES = 1281167  
@@ -299,10 +299,12 @@ if __name__ == '__main__':
   #for i in range(0, mini_batch):
   #  io.imsave("%s_%d.%s" % ("test_img", i, 'jpeg'), x[i])
 
-  valid_data_path = "/home1/hhwu/ImageNet/valid.tfrecords"
+  valid_data_path = "/mnt/ramdisk/valid.tfrecords"
+  #valid_data_path = "/home1/hhwu/ImageNet/valid.tfrecords"
   train_data_path = []
   for i in xrange(0,101):
-    train_data_path.append("/home1/hhwu/ImageNet/tf_data/train_%d.tfrecords" % i)
+    train_data_path.append("/mnt/ramdisk/tf_data/train_%d.tfrecords" % i)
+    #train_data_path.append("/home1/hhwu/ImageNet/tf_data/train_%d.tfrecords" % i)
 
 
   with tf.Session() as sess:
@@ -332,7 +334,7 @@ if __name__ == '__main__':
     train_image = cropImg(train_image, mean_img)
 
     train_images, train_labels = tf.train.shuffle_batch([train_image, train_label], 
-                                                         batch_size=mini_batch, capacity=3*mini_batch, num_threads=8, min_after_dequeue=10)
+                                                         batch_size=mini_batch, capacity=3*mini_batch, num_threads=16, min_after_dequeue=256)
 
 
     ################################
@@ -361,7 +363,7 @@ if __name__ == '__main__':
     valid_image = cropImg(valid_image, mean_img)
 
     valid_images, valid_labels = tf.train.batch([valid_image, valid_label], 
-                                                         batch_size=1000, capacity=50000, num_threads=8)
+                                                         batch_size=1000, capacity=50000, num_threads=16)
 
 
 
@@ -396,7 +398,7 @@ if __name__ == '__main__':
     image_iterator = 0
     data = []
     label = []
-    for itr in xrange(500000):
+    for itr in xrange(100000):
       #x, y = batchRead(image_name, class_dict, mean_img, pool)
 
       #print y
@@ -416,19 +418,13 @@ if __name__ == '__main__':
                                                                 total_loss.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}),
                                                                 accuracy.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}))
 
-      #if itr % 500 == 0:
-      #  valid_accuracy = 0.0
-      #  for i in range(0,50):
-      #    test_x, test_y = sess.run([valid_images, valid_labels])
-      #    valid_accuracy += correct_sum.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0})
-      #  print "Validation Accuracy: %f (%.1f/50000)" %  (valid_accuracy/50000, valid_accuracy)
+      if itr % 500 == 0 and itr != 0:
+        valid_accuracy = 0.0
+        for i in range(0,50):
+          test_x, test_y = sess.run([valid_images, valid_labels])
+          valid_accuracy += correct_sum.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0})
+        print "Validation Accuracy: %f (%.1f/50000)" %  (valid_accuracy/50000, valid_accuracy)
        
-
-      if itr % 10000 == 0 and itr != 0:
-        model_name = "./checkpoint/model_%d.ckpt" % itr
-        save_path = saver.save(sess, model_name)
-        #save_path = saver.save(sess, "./checkpoint/model.ckpt")
-        print("Model saved in file: %s" % save_path)
 
 
       if epoch_counter*mini_batch > NUM_IMAGES:
@@ -448,6 +444,13 @@ if __name__ == '__main__':
     coord.request_stop()
     coord.join(threads)
     sess.close()
+
+    #if itr % 10000 == 0 and itr != 0:
+    model_name = "./checkpoint/model_small_1.ckpt"
+    save_path = saver.save(sess, model_name)
+    #save_path = saver.save(sess, "./checkpoint/model.ckpt")
+    print("Model saved in file: %s" % save_path)
+
 
 
 

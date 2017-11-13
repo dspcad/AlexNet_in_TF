@@ -374,8 +374,9 @@ if __name__ == '__main__':
   #for var in tf.trainable_variables():
   #  print var
 
-  print tf.get_collection('losses')
+  #print tf.get_collection('losses')
 
+  print tf.global_variables()
   #diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   #reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
   #cross_entropy = tf.reduce_mean(diff) + reg*sum(reg_losses)
@@ -496,6 +497,10 @@ if __name__ == '__main__':
     init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
     sess.run(init_op)
 
+    variables_names =[v.name for v in tf.trainable_variables()]
+    values = sess.run(variables_names)
+    for k,v in zip(variables_names, values):
+      print(k, v)
 
     # Create a coordinator and run all QueueRunner objects
     coord = tf.train.Coordinator()
@@ -541,7 +546,7 @@ if __name__ == '__main__':
                                                                 total_loss.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}),
                                                                 accuracy.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}))
 
-      if itr % 1000 == 0:
+      if itr % 1000 == 0 and itr != 0:
         valid_accuracy = 0.0
         for i in range(0,50):
           test_x, test_y = sess.run([valid_images, valid_labels])

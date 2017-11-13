@@ -352,10 +352,12 @@ if __name__ == '__main__':
   #for i in range(0, mini_batch):
   #  io.imsave("%s_%d.%s" % ("test_img", i, 'jpeg'), x[i])
 
+  #valid_data_path = "/mnt/ramdisk/valid.tfrecords"
   valid_data_path = "/home1/hhwu/ImageNet/valid.tfrecords"
   train_data_path = []
   for i in xrange(0,101):
     train_data_path.append("/home1/hhwu/ImageNet/tf_data/train_%d.tfrecords" % i)
+    #train_data_path.append("/mnt/ramdisk/tf_data/train_%d.tfrecords" % i)
 
 
   with tf.Session() as sess:
@@ -363,7 +365,7 @@ if __name__ == '__main__':
     #        Training Data         #
     ################################
     train_feature = {'train/image': tf.FixedLenFeature([], tf.string),
-               'train/label': tf.FixedLenFeature([], tf.int64)}
+                     'train/label': tf.FixedLenFeature([], tf.int64)}
     # Create a list of filenames and pass it to a queue
     train_filename_queue = tf.train.string_input_producer(train_data_path, num_epochs=90)
     #filename_queue = tf.train.string_input_producer([data_path], num_epochs=1)
@@ -385,7 +387,7 @@ if __name__ == '__main__':
     train_image = cropImg(train_image, mean_img)
 
     train_images, train_labels = tf.train.shuffle_batch([train_image, train_label], 
-                                                         batch_size=mini_batch, capacity=3*mini_batch, num_threads=8, min_after_dequeue=10)
+                                                         batch_size=mini_batch, capacity=3*mini_batch, num_threads=16, min_after_dequeue=256)
 
 
     ################################
@@ -414,7 +416,7 @@ if __name__ == '__main__':
     valid_image = cropImg(valid_image, mean_img)
 
     valid_images, valid_labels = tf.train.batch([valid_image, valid_label], 
-                                                         batch_size=1000, capacity=50000, num_threads=8)
+                                                         batch_size=1000, capacity=50000, num_threads=16)
 
 
 
@@ -449,7 +451,7 @@ if __name__ == '__main__':
     image_iterator = 0
     data = []
     label = []
-    for itr in xrange(100000):
+    for itr in xrange(200000):
       #x, y = batchRead(image_name, class_dict, mean_img, pool)
 
       #print y
@@ -469,7 +471,7 @@ if __name__ == '__main__':
                                                                 total_loss.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}),
                                                                 accuracy.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}))
 
-      if itr % 500 == 0:
+      if itr % 1000 == 0 and itr != 0:
         valid_accuracy = 0.0
         for i in range(0,50):
           test_x, test_y = sess.run([valid_images, valid_labels])
