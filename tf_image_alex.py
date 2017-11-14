@@ -188,7 +188,7 @@ if __name__ == '__main__':
 
   # Dropout probability
   keep_prob     = tf.placeholder(tf.float32)
-  #learning_rate = tf.placeholder(tf.float32)
+  learning_rate = tf.placeholder(tf.float32)
 
   # initialize parameters randomly
 
@@ -313,11 +313,12 @@ if __name__ == '__main__':
   total_loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
  
 
-  global_step = tf.Variable(0, trainable=False)
-  learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step,
-                                             100000, 0.1, staircase=True)
+  #global_step = tf.Variable(0, trainable=False)
+  #learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step,
+  #                                           10000, 0.1, staircase=True)
 
-  train_step = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True).minimize(total_loss)
+  train_step = tf.train.MomentumOptimizer(learning_rate, 0.9).minimize(total_loss)
+  #train_step = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True).minimize(total_loss)
   #train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
   #train_step = tf.train.AdamOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
 
@@ -461,27 +462,31 @@ if __name__ == '__main__':
 
       #x, y, image_iterator, data, label = batchSerialRead(image_iterator, data, label)
       x, y = sess.run([train_images, train_labels])
-      train_step.run(feed_dict={X: x, Y_: y, keep_prob: DROPOUT_PROB})
+      train_step.run(feed_dict={X: x, Y_: y, keep_prob: DROPOUT_PROB, learning_rate: LEARNING_RATE})
       #elapsed_time = time.time() - start_time
       #print "Time for training: %f" % elapsed_time
       if itr % 20 == 0:
         print "Iter %d:  learning rate: %f  dropout: %.1f cross entropy: %f total loss: %f  accuracy: %f" % (itr,
-                                                                learning_rate.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}),
+                                                                LEARNING_RATE,
+                                                                #learning_rate.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}),
                                                                 DROPOUT_PROB,
-                                                                cross_entropy.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}),
-                                                                total_loss.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}),
-                                                                accuracy.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}))
+                                                                cross_entropy.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0, learning_rate: LEARNING_RATE}),
+                                                                total_loss.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0, learning_rate: LEARNING_RATE}),
+                                                                accuracy.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0, learning_rate: LEARNING_RATE}))
 
       if itr % 1000 == 0 and itr != 0:
         valid_accuracy = 0.0
         for i in range(0,50):
           test_x, test_y = sess.run([valid_images, valid_labels])
-          valid_accuracy += correct_sum.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0})
+          valid_accuracy += correct_sum.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0, learning_rate: LEARNING_RATE})
         print "Validation Accuracy: %f (%.1f/50000)" %  (valid_accuracy/50000, valid_accuracy)
         valid_result.write("Validation Accuracy: %f" % (valid_accuracy/50000))
         valid_result.write("\n")
 
        
+
+      if itr == 10000:
+        LEARNING_RATE = 1e-3
         #print "   Validation Accuracy: %f" % (test_accuracy/50)
        #test_x, test_y = sess.run([valid_images, valid_labels])
         #print "   Validation Accuracy: %f" % accuracy.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0})
