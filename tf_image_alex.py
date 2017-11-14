@@ -154,13 +154,14 @@ if __name__ == '__main__':
 
 
   class_name  = loadClassName('synset.csv')
+#  print class_name
 
-  pool = ThreadPool(processes=8)
-  print "Multi-threads begin!"
+  #pool = ThreadPool(processes=8)
+  #print "Multi-threads begin!"
 
   
   
-
+  valid_result = open("valid_result.txt", 'w')
   
   #########################################
   #  Configuration of CNN architecture    #
@@ -245,21 +246,21 @@ if __name__ == '__main__':
   ##########################
   #===== Layer 1 =====#
   conv1_1 = tf.nn.relu(tf.nn.conv2d(X,  W1_1, strides=[1,4,4,1], padding='SAME')+b1_1)
-  norm1_1 = tf.nn.lrn(conv1_1, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  norm1_1 = tf.nn.lrn(conv1_1, alpha=1e-4, beta=0.75, depth_radius=5, bias=1.0)
   pool1_1 = tf.nn.max_pool(norm1_1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
   conv1_2 = tf.nn.relu(tf.nn.conv2d(X,  W1_2, strides=[1,4,4,1], padding='SAME')+b1_2)
-  norm1_2 = tf.nn.lrn(conv1_2, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  norm1_2 = tf.nn.lrn(conv1_2, alpha=1e-4, beta=0.75, depth_radius=5, bias=1.0)
   pool1_2 = tf.nn.max_pool(norm1_2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
 
   #===== Layer 2 =====#
   conv2_1 = tf.nn.relu(tf.nn.conv2d(pool1_1, W2_1, strides=[1,1,1,1], padding='SAME')+b2_1)
-  norm2_1 = tf.nn.lrn(conv2_1, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  norm2_1 = tf.nn.lrn(conv2_1, alpha=1e-4, beta=0.75, depth_radius=5, bias=1.0)
   pool2_1 = tf.nn.max_pool(norm2_1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
   conv2_2 = tf.nn.relu(tf.nn.conv2d(pool1_2, W2_2, strides=[1,1,1,1], padding='SAME')+b2_2)
-  norm2_2 = tf.nn.lrn(conv2_2, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  norm2_2 = tf.nn.lrn(conv2_2, alpha=1e-4, beta=0.75, depth_radius=5, bias=1.0)
   pool2_2 = tf.nn.max_pool(norm2_2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
   
@@ -353,10 +354,10 @@ if __name__ == '__main__':
   #  io.imsave("%s_%d.%s" % ("test_img", i, 'jpeg'), x[i])
 
   #valid_data_path = "/mnt/ramdisk/valid.tfrecords"
-  valid_data_path = "/home1/hhwu/ImageNet/valid.tfrecords"
+  valid_data_path = "/home/hhwu/ImageNet/valid.tfrecords"
   train_data_path = []
   for i in xrange(0,101):
-    train_data_path.append("/home1/hhwu/ImageNet/tf_data/train_%d.tfrecords" % i)
+    train_data_path.append("/home/hhwu/ImageNet/tf_train/train_%d.tfrecords" % i)
     #train_data_path.append("/mnt/ramdisk/tf_data/train_%d.tfrecords" % i)
 
 
@@ -387,7 +388,7 @@ if __name__ == '__main__':
     train_image = cropImg(train_image, mean_img)
 
     train_images, train_labels = tf.train.shuffle_batch([train_image, train_label], 
-                                                         batch_size=mini_batch, capacity=3*mini_batch, num_threads=16, min_after_dequeue=256)
+                                                         batch_size=mini_batch, capacity=3*mini_batch, num_threads=8, min_after_dequeue=mini_batch)
 
 
     ################################
@@ -416,7 +417,7 @@ if __name__ == '__main__':
     valid_image = cropImg(valid_image, mean_img)
 
     valid_images, valid_labels = tf.train.batch([valid_image, valid_label], 
-                                                         batch_size=1000, capacity=50000, num_threads=16)
+                                                         batch_size=1000, capacity=5000, num_threads=8)
 
 
 
@@ -477,6 +478,9 @@ if __name__ == '__main__':
           test_x, test_y = sess.run([valid_images, valid_labels])
           valid_accuracy += correct_sum.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0})
         print "Validation Accuracy: %f (%.1f/50000)" %  (valid_accuracy/50000, valid_accuracy)
+        valid_result.write("Validation Accuracy: %f" % (valid_accuracy/50000))
+        valid_result.write("\n")
+
        
         #print "   Validation Accuracy: %f" % (test_accuracy/50)
        #test_x, test_y = sess.run([valid_images, valid_labels])
