@@ -296,8 +296,7 @@ if __name__ == '__main__':
   fc2_drop = tf.nn.dropout(fc2, keep_prob)
 
   #===== Layer 8 =====#
-  fc3 = tf.matmul(fc2_drop,W8)+b8             
-  Y  = tf.nn.softmax(fc3)
+  Y = tf.matmul(fc2_drop,W8)+b8             
 
 
 
@@ -308,7 +307,7 @@ if __name__ == '__main__':
   #diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   #reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
   #cross_entropy = tf.reduce_mean(diff) + reg*sum(reg_losses)
-  cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=fc3))
+  cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y))
   tf.add_to_collection('losses', cross_entropy)
   total_loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
  
@@ -317,8 +316,8 @@ if __name__ == '__main__':
   #learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step,
   #                                           10000, 0.1, staircase=True)
 
-  train_step = tf.train.MomentumOptimizer(learning_rate, 0.9).minimize(total_loss)
-  #train_step = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True).minimize(total_loss)
+  #train_step = tf.train.MomentumOptimizer(learning_rate, 0.9).minimize(total_loss)
+  train_step = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True).minimize(total_loss)
   #train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
   #train_step = tf.train.AdamOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
 
