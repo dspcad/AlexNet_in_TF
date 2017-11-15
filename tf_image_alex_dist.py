@@ -222,12 +222,13 @@ if __name__ == '__main__':
 
   class_name  = loadClassName('synset.csv')
 
-  pool = ThreadPool(processes=8)
-  print "Multi-threads begin!"
+  #pool = ThreadPool(processes=8)
+  #print "Multi-threads begin!"
 
   
   
 
+  valid_result = open("valid_result.txt", 'w')
   
   #########################################
   #  Configuration of CNN architecture    #
@@ -261,6 +262,7 @@ if __name__ == '__main__':
   print tf.global_variables()
 
   keep_prob     = tf.placeholder(tf.float32)
+  learning_rate = tf.placeholder(tf.float32)
   X  = tf.placeholder(tf.float32, shape=[None, 227,227,3])
   Y_ = tf.placeholder(tf.float32, shape=[None,K])
 
@@ -316,21 +318,21 @@ if __name__ == '__main__':
   ##########################
   #===== Layer 1 =====#
   conv1_1 = tf.nn.relu(tf.nn.conv2d(X,  W1_1, strides=[1,4,4,1], padding='SAME')+b1_1)
-  norm1_1 = tf.nn.lrn(conv1_1, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  norm1_1 = tf.nn.lrn(conv1_1, alpha=1e-4, beta=0.75, depth_radius=5, bias=1.0)
   pool1_1 = tf.nn.max_pool(norm1_1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
   conv1_2 = tf.nn.relu(tf.nn.conv2d(X,  W1_2, strides=[1,4,4,1], padding='SAME')+b1_2)
-  norm1_2 = tf.nn.lrn(conv1_2, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  norm1_2 = tf.nn.lrn(conv1_2, alpha=1e-4, beta=0.75, depth_radius=5, bias=1.0)
   pool1_2 = tf.nn.max_pool(norm1_2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
 
   #===== Layer 2 =====#
   conv2_1 = tf.nn.relu(tf.nn.conv2d(pool1_1, W2_1, strides=[1,1,1,1], padding='SAME')+b2_1)
-  norm2_1 = tf.nn.lrn(conv2_1, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  norm2_1 = tf.nn.lrn(conv2_1, alpha=1e-4, beta=0.75, depth_radius=5, bias=1.0)
   pool2_1 = tf.nn.max_pool(norm2_1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
   conv2_2 = tf.nn.relu(tf.nn.conv2d(pool1_2, W2_2, strides=[1,1,1,1], padding='SAME')+b2_2)
-  norm2_2 = tf.nn.lrn(conv2_2, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  norm2_2 = tf.nn.lrn(conv2_2, alpha=1e-4, beta=0.75, depth_radius=5, bias=1.0)
   pool2_2 = tf.nn.max_pool(norm2_2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
   
@@ -366,8 +368,7 @@ if __name__ == '__main__':
   fc2_drop = tf.nn.dropout(fc2, keep_prob)
 
   #===== Layer 8 =====#
-  fc3 = tf.matmul(fc2_drop,W8)+b8             
-  Y  = tf.nn.softmax(fc3)
+  Y = tf.matmul(fc2_drop,W8)+b8             
 
 
 
@@ -376,18 +377,18 @@ if __name__ == '__main__':
 
   #print tf.get_collection('losses')
 
-  print tf.global_variables()
+  #print tf.global_variables()
   #diff = tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)
   #reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
   #cross_entropy = tf.reduce_mean(diff) + reg*sum(reg_losses)
-  cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=fc3))
+  cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y))
   tf.add_to_collection('losses', cross_entropy)
   total_loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
  
 
-  global_step = tf.Variable(0, trainable=False)
-  learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step,
-                                             100000, 0.1, staircase=True)
+  #global_step = tf.Variable(0, trainable=False)
+  #learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step,
+  #                                           100000, 0.1, staircase=True)
 
   train_step = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True).minimize(total_loss)
   #train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
@@ -458,7 +459,7 @@ if __name__ == '__main__':
     train_image = cropImg(train_image, mean_img)
 
     train_images, train_labels = tf.train.shuffle_batch([train_image, train_label], 
-                                                         batch_size=mini_batch, capacity=3*mini_batch, num_threads=8, min_after_dequeue=10)
+                                                         batch_size=mini_batch, capacity=3*mini_batch, num_threads=16, min_after_dequeue=mini_batch)
 
 
     ################################
@@ -487,7 +488,7 @@ if __name__ == '__main__':
     valid_image = cropImg(valid_image, mean_img)
 
     valid_images, valid_labels = tf.train.batch([valid_image, valid_label], 
-                                                         batch_size=1000, capacity=50000, num_threads=8)
+                                                         batch_size=100, capacity=5000, num_threads=16)
 
 
 
@@ -497,10 +498,10 @@ if __name__ == '__main__':
     init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
     sess.run(init_op)
 
-    variables_names =[v.name for v in tf.trainable_variables()]
-    values = sess.run(variables_names)
-    for k,v in zip(variables_names, values):
-      print(k, v)
+    #variables_names =[v.name for v in tf.trainable_variables()]
+    #values = sess.run(variables_names)
+    #for k,v in zip(variables_names, values):
+    #  print(k, v)
 
     # Create a coordinator and run all QueueRunner objects
     coord = tf.train.Coordinator()
@@ -535,24 +536,25 @@ if __name__ == '__main__':
 
       #x, y, image_iterator, data, label = batchSerialRead(image_iterator, data, label)
       x, y = sess.run([train_images, train_labels])
-      train_step.run(feed_dict={X: x, Y_: y, keep_prob: DROPOUT_PROB})
+      train_step.run(feed_dict={X: x, Y_: y, keep_prob: DROPOUT_PROB, learning_rate: LEARNING_RATE})
       #elapsed_time = time.time() - start_time
       #print "Time for training: %f" % elapsed_time
       if itr % 20 == 0:
         print "Iter %d:  learning rate: %f  dropout: %.1f cross entropy: %f total loss: %f  accuracy: %f" % (itr,
-                                                                learning_rate.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}),
+                                                                learning_rate.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0, learning_rate: LEARNING_RATE}),
                                                                 DROPOUT_PROB,
-                                                                cross_entropy.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}),
-                                                                total_loss.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}),
-                                                                accuracy.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0}))
+                                                                cross_entropy.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0, learning_rate: LEARNING_RATE}),
+                                                                total_loss.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0, learning_rate: LEARNING_RATE}),
+                                                                accuracy.eval(feed_dict={X: x, Y_: y, keep_prob: 1.0, learning_rate: LEARNING_RATE}))
 
       if itr % 1000 == 0 and itr != 0:
         valid_accuracy = 0.0
-        for i in range(0,50):
+        for i in range(0,500):
           test_x, test_y = sess.run([valid_images, valid_labels])
           valid_accuracy += correct_sum.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0})
         print "Validation Accuracy: %f (%.1f/50000)" %  (valid_accuracy/50000, valid_accuracy)
-       
+        valid_result.write("Validation Accuracy: %f" % (valid_accuracy/50000))
+        valid_result.write("\n")
         #print "   Validation Accuracy: %f" % (test_accuracy/50)
        #test_x, test_y = sess.run([valid_images, valid_labels])
         #print "   Validation Accuracy: %f" % accuracy.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0})
@@ -578,15 +580,17 @@ if __name__ == '__main__':
        # print "   tmp Validation Accuracy: %f" %  tmp_accracy
       
 
+      if itr == 10000:
+        LEARNING_RATE = 1e-3
       #print train_step
  
       #print "W9:"
       #print sess.run(W9) 
-      #if itr % 10000 == 0 and itr != 0:
-      #  model_name = "./checkpoint/model_%d.ckpt" % itr
-      #  save_path = saver.save(sess, model_name)
-      #  #save_path = saver.save(sess, "./checkpoint/model.ckpt")
-      #  print("Model saved in file: %s" % save_path)
+      if itr % 10000 == 0 and itr != 0:
+        model_name = "./checkpoint/model_%d.ckpt" % itr
+        save_path = saver.save(sess, model_name)
+        #save_path = saver.save(sess, "./checkpoint/model.ckpt")
+        print("Model saved in file: %s" % save_path)
 
 
       if epoch_counter*mini_batch > NUM_IMAGES:
