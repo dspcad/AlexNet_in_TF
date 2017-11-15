@@ -4,6 +4,7 @@ import cPickle
 import numpy as np
 import os
 import csv
+import sys
 from skimage import io
 from skimage import transform
 from skimage import color
@@ -158,6 +159,12 @@ if __name__ == '__main__':
   pool = ThreadPool(processes=8)
   print "Multi-threads begin!"
 
+  print '=========    Model Setting    ========='
+  model_name = "./checkpoint/model_small_%s.ckpt" % sys.argv[1]
+  print "=  Model name: %s " % model_name
+  print '======================================='
+
+  print '===== Start loadin CIFAR10 ====='
   
   
 
@@ -173,7 +180,7 @@ if __name__ == '__main__':
 
   DROPOUT_PROB = 0.50
 
-  LEARNING_RATE = 1e-2
+  LEARNING_RATE = 1e-3
   NUM_IMAGES = 1281167  
 
   reg = 0 # regularization strength
@@ -197,13 +204,13 @@ if __name__ == '__main__':
   W3    = _variable_with_weight_decay('W8', shape=[13*13*NUM_FILTER_2*2,K], stddev=1e-2, wd=5e-4)
   
 
-  b1_1 = tf.Variable(tf.constant(0.0, shape=[NUM_FILTER_1], dtype=tf.float32), trainable=True, name='b1_1')
-  b1_2 = tf.Variable(tf.constant(0.0, shape=[NUM_FILTER_1], dtype=tf.float32), trainable=True, name='b1_2')
+  b1_1 = tf.Variable(tf.constant(1.0, shape=[NUM_FILTER_1], dtype=tf.float32), trainable=True, name='b1_1')
+  b1_2 = tf.Variable(tf.constant(1.0, shape=[NUM_FILTER_1], dtype=tf.float32), trainable=True, name='b1_2')
 
-  b2_1 = tf.Variable(tf.constant(0.1, shape=[NUM_FILTER_2], dtype=tf.float32), trainable=True, name='b2_1')
-  b2_2 = tf.Variable(tf.constant(0.1, shape=[NUM_FILTER_2], dtype=tf.float32), trainable=True, name='b2_2')
+  b2_1 = tf.Variable(tf.constant(1.0, shape=[NUM_FILTER_2], dtype=tf.float32), trainable=True, name='b2_1')
+  b2_2 = tf.Variable(tf.constant(1.0, shape=[NUM_FILTER_2], dtype=tf.float32), trainable=True, name='b2_2')
 
-  b3   = tf.Variable(tf.constant(0.0, shape=[K], dtype=tf.float32), trainable=True, name='b8')
+  b3   = tf.Variable(tf.constant(1.0, shape=[K], dtype=tf.float32), trainable=True, name='b3')
 
 
 
@@ -213,21 +220,21 @@ if __name__ == '__main__':
   ##########################
   #===== Layer 1 =====#
   conv1_1 = tf.nn.relu(tf.nn.conv2d(X,  W1_1, strides=[1,4,4,1], padding='SAME')+b1_1)
-  norm1_1 = tf.nn.lrn(conv1_1, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  norm1_1 = tf.nn.lrn(conv1_1, alpha=1e-4, beta=0.75, depth_radius=5, bias=1.0)
   pool1_1 = tf.nn.max_pool(norm1_1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
   conv1_2 = tf.nn.relu(tf.nn.conv2d(X,  W1_2, strides=[1,4,4,1], padding='SAME')+b1_2)
-  norm1_2 = tf.nn.lrn(conv1_2, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  norm1_2 = tf.nn.lrn(conv1_2, alpha=1e-4, beta=0.75, depth_radius=5, bias=1.0)
   pool1_2 = tf.nn.max_pool(norm1_2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
 
   #===== Layer 2 =====#
   conv2_1 = tf.nn.relu(tf.nn.conv2d(pool1_1, W2_1, strides=[1,1,1,1], padding='SAME')+b2_1)
-  norm2_1 = tf.nn.lrn(conv2_1, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  norm2_1 = tf.nn.lrn(conv2_1, alpha=1e-4, beta=0.75, depth_radius=5, bias=1.0)
   pool2_1 = tf.nn.max_pool(norm2_1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
   conv2_2 = tf.nn.relu(tf.nn.conv2d(pool1_2, W2_2, strides=[1,1,1,1], padding='SAME')+b2_2)
-  norm2_2 = tf.nn.lrn(conv2_2, alpha=1e-4, beta=0.75, depth_radius=5, bias=2.0)
+  norm2_2 = tf.nn.lrn(conv2_2, alpha=1e-4, beta=0.75, depth_radius=5, bias=1.0)
   pool2_2 = tf.nn.max_pool(norm2_2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
   
@@ -255,9 +262,9 @@ if __name__ == '__main__':
 
   global_step = tf.Variable(0, trainable=False)
   learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step,
-                                             100000, 0.1, staircase=True)
+                                             5000, 0.1, staircase=True)
 
-  train_step = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True).minimize(total_loss)
+  train_step = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True).minimize(total_loss, global_step=global_step)
   #train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
   #train_step = tf.train.AdamOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
 
@@ -273,7 +280,7 @@ if __name__ == '__main__':
   #####################################################
   #        Save the W1 and W2 parameters only         #
   #####################################################
-  saver = tf.train.Saver([W1_1,W1_2,W2_1,W2_2])
+  saver = tf.train.Saver([W1_1,W1_2,W2_1,W2_2,b1_1,b1_2,b2_1,b2_2,b3])
 
 
   # Add ops to save and restore all the variables.
@@ -398,7 +405,7 @@ if __name__ == '__main__':
     image_iterator = 0
     data = []
     label = []
-    for itr in xrange(100000):
+    for itr in xrange(10000):
       #x, y = batchRead(image_name, class_dict, mean_img, pool)
 
       #print y
@@ -440,16 +447,16 @@ if __name__ == '__main__':
       else:
         epoch_counter = epoch_counter + 1
 
+    #if itr % 10000 == 0 and itr != 0:
+    #model_name = "./checkpoint/model_small_1.ckpt"
+    save_path = saver.save(sess, model_name)
+    #save_path = saver.save(sess, "./checkpoint/model.ckpt")
+    print("Model saved in file: %s" % save_path)
+
 
     coord.request_stop()
     coord.join(threads)
     sess.close()
-
-    #if itr % 10000 == 0 and itr != 0:
-    model_name = "./checkpoint/model_small_1.ckpt"
-    save_path = saver.save(sess, model_name)
-    #save_path = saver.save(sess, "./checkpoint/model.ckpt")
-    print("Model saved in file: %s" % save_path)
 
 
 
