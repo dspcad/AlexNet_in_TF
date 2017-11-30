@@ -75,11 +75,15 @@ def cropImg(target_img, mean_img):
   #floating_img = target_img
 
 
+  floating_img = tf.image.random_flip_left_right(floating_img)
+  target_img = tf.random_crop(floating_img, [227, 227, 3])
+
+  #target_img = tf.image.crop_to_bounding_box(floating_img, 14, 14, 227, 227)
   #target_img = target_img - mean_img
 
   #reflection   = np.random.randint(0,2)
   #if reflection == 0:
-  #  target_img = np.fliplr(target_img)
+  #  floating_img = np.fliplr(floating_img)
 
 
   ################################
@@ -88,11 +92,12 @@ def cropImg(target_img, mean_img):
   #height_shift = np.random.randint(0,256-224)
   #width_shift  = np.random.randint(0,256-224)
 
-  height_shift = 14
-  width_shift  = 14
-  target_img = floating_img[height_shift:height_shift+227, width_shift:width_shift+227,:]
+  #height_shift = 14
+  #width_shift  = 14
+  #target_img = floating_img[height_shift:height_shift+227, width_shift:width_shift+227,:]
 
-  #print target_img
+
+  print "crop image..."
   return target_img
 
 
@@ -316,8 +321,8 @@ if __name__ == '__main__':
   #learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step,
   #                                           10000, 0.1, staircase=True)
 
-  #train_step = tf.train.MomentumOptimizer(learning_rate, 0.9).minimize(total_loss)
-  train_step = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True).minimize(total_loss)
+  train_step = tf.train.MomentumOptimizer(learning_rate, 0.9).minimize(total_loss)
+  #train_step = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True).minimize(total_loss)
   #train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
   #train_step = tf.train.AdamOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
 
@@ -383,6 +388,7 @@ if __name__ == '__main__':
 
     train_image = cropImg(train_image, mean_img)
 
+    #print "TFRecord: hhwu !"
     train_images, train_labels = tf.train.batch([train_image, train_label], 
                                                  batch_size=mini_batch, capacity=5*mini_batch, num_threads=16)
 
@@ -424,8 +430,8 @@ if __name__ == '__main__':
     sess.run(init_op)
 
     # Restore variables from disk.
-    saver.restore(sess, "./checkpoint/model_10000.ckpt")
-    print("Model restored.")
+    #saver.restore(sess, "./checkpoint/model_10000.ckpt")
+    #print("Model restored.")
 
 
     # Create a coordinator and run all QueueRunner objects
@@ -484,7 +490,7 @@ if __name__ == '__main__':
 
        
 
-      if itr == 10000:
+      if itr == 100000:
         LEARNING_RATE = 1e-3
         #print "   Validation Accuracy: %f" % (test_accuracy/50)
        #test_x, test_y = sess.run([valid_images, valid_labels])
