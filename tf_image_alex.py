@@ -64,8 +64,7 @@ def cropImg(target_img, mean_img):
 
   #Grayscale Img and convert it to RGB
   if len(target_img.shape) == 2:
-    target_img = tf.image.grayscale_to_rgb(target_img)
-    #target_img = color.gray2rgb(target_img)
+    target_img = color.gray2rgb(target_img)
 
 
   #floating_img[:,:,0] = target_img[:,:,0] - mean_pixel[0]
@@ -105,36 +104,7 @@ def cropImg(target_img, mean_img):
   #target_img = floating_img[height_shift:height_shift+227, width_shift:width_shift+227,:]
 
 
-  print "crop training image..."
-  return target_img
-
-def validCropImg(target_img, mean_img):
-  ###############################
-  #       shape[0]: height      #
-  #       shape[1]: width       #
-  ###############################
-  #mean_pixel = [123.182570556, 116.282672124, 103.462011796]
-  floating_img = np.empty(target_img.shape, dtype=np.float32)
-
-  #Grayscale Img and convert it to RGB
-  if len(target_img.shape) == 2:
-    target_img = tf.image.grayscale_to_rgb(target_img)
-    #target_img = color.gray2rgb(target_img)
-
-
-  #floating_img[:,:,0] = target_img[:,:,0] - mean_pixel[0]
-  #floating_img[:,:,1] = target_img[:,:,1] - mean_pixel[1]
-  #floating_img[:,:,2] = target_img[:,:,2] - mean_pixel[2]
-
-  floating_img = target_img - mean_img
-  #floating_img = target_img
-
-  print "crop validation image..."
-  height_shift = 14
-  width_shift  = 14
-  target_img = floating_img[height_shift:height_shift+227, width_shift:width_shift+227,:]
-
-
+  print "crop image..."
   return target_img
 
 
@@ -287,21 +257,21 @@ if __name__ == '__main__':
   #      Architecture      #
   ##########################
   #===== Layer 1 =====#
-  conv1_1 = tf.nn.relu(tf.layers.batch_normalization(tf.nn.conv2d(X,  W1_1, strides=[1,4,4,1], padding='SAME')+b1_1))
+  conv1_1 = tf.nn.relu(tf.nn.conv2d(X,  W1_1, strides=[1,4,4,1], padding='SAME')+b1_1)
   norm1_1 = tf.nn.lrn(conv1_1, alpha=1e-4, beta=0.75, depth_radius=5, bias=1.0)
   pool1_1 = tf.nn.max_pool(norm1_1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
-  conv1_2 = tf.nn.relu(tf.layers.batch_normalization(tf.nn.conv2d(X,  W1_2, strides=[1,4,4,1], padding='SAME')+b1_2))
+  conv1_2 = tf.nn.relu(tf.nn.conv2d(X,  W1_2, strides=[1,4,4,1], padding='SAME')+b1_2)
   norm1_2 = tf.nn.lrn(conv1_2, alpha=1e-4, beta=0.75, depth_radius=5, bias=1.0)
   pool1_2 = tf.nn.max_pool(norm1_2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
 
   #===== Layer 2 =====#
-  conv2_1 = tf.nn.relu(tf.layers.batch_normalization(tf.nn.conv2d(pool1_1, W2_1, strides=[1,1,1,1], padding='SAME')+b2_1))
+  conv2_1 = tf.nn.relu(tf.nn.conv2d(pool1_1, W2_1, strides=[1,1,1,1], padding='SAME')+b2_1)
   norm2_1 = tf.nn.lrn(conv2_1, alpha=1e-4, beta=0.75, depth_radius=5, bias=1.0)
   pool2_1 = tf.nn.max_pool(norm2_1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
-  conv2_2 = tf.nn.relu(tf.layers.batch_normalization(tf.nn.conv2d(pool1_2, W2_2, strides=[1,1,1,1], padding='SAME')+b2_2))
+  conv2_2 = tf.nn.relu(tf.nn.conv2d(pool1_2, W2_2, strides=[1,1,1,1], padding='SAME')+b2_2)
   norm2_2 = tf.nn.lrn(conv2_2, alpha=1e-4, beta=0.75, depth_radius=5, bias=1.0)
   pool2_2 = tf.nn.max_pool(norm2_2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
 
@@ -310,17 +280,17 @@ if __name__ == '__main__':
 
 
   #===== Layer 3 =====#
-  conv3_1 = tf.nn.relu(tf.layers.batch_normalization(tf.nn.conv2d(cross2, W3_1, strides=[1,1,1,1], padding='SAME')+b3_1))
-  conv3_2 = tf.nn.relu(tf.layers.batch_normalization(tf.nn.conv2d(cross2, W3_2, strides=[1,1,1,1], padding='SAME')+b3_2))
+  conv3_1 = tf.nn.relu(tf.nn.conv2d(cross2, W3_1, strides=[1,1,1,1], padding='SAME')+b3_1)
+  conv3_2 = tf.nn.relu(tf.nn.conv2d(cross2, W3_2, strides=[1,1,1,1], padding='SAME')+b3_2)
 
 
   #===== Layer 4 =====#
-  conv4_1 = tf.nn.relu(tf.layers.batch_normalization(tf.nn.conv2d(conv3_1, W4_1, strides=[1,1,1,1], padding='SAME')+b4_1))
-  conv4_2 = tf.nn.relu(tf.layers.batch_normalization(tf.nn.conv2d(conv3_2, W4_2, strides=[1,1,1,1], padding='SAME')+b4_2))
+  conv4_1 = tf.nn.relu(tf.nn.conv2d(conv3_1, W4_1, strides=[1,1,1,1], padding='SAME')+b4_1)
+  conv4_2 = tf.nn.relu(tf.nn.conv2d(conv3_2, W4_2, strides=[1,1,1,1], padding='SAME')+b4_2)
 
   #===== Layer 5 =====#
-  conv5_1 = tf.nn.relu(tf.layers.batch_normalization(tf.nn.conv2d(conv4_1, W5_1, strides=[1,1,1,1], padding='SAME')+b5_1))
-  conv5_2 = tf.nn.relu(tf.layers.batch_normalization(tf.nn.conv2d(conv4_2, W5_2, strides=[1,1,1,1], padding='SAME')+b5_2))
+  conv5_1 = tf.nn.relu(tf.nn.conv2d(conv4_1, W5_1, strides=[1,1,1,1], padding='SAME')+b5_1)
+  conv5_2 = tf.nn.relu(tf.nn.conv2d(conv4_2, W5_2, strides=[1,1,1,1], padding='SAME')+b5_2)
 
   pool5_1 = tf.nn.max_pool(conv5_1, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
   pool5_2 = tf.nn.max_pool(conv5_2, ksize=[1,3,3,1], strides=[1,2,2,1], padding='VALID')
@@ -358,8 +328,8 @@ if __name__ == '__main__':
   #learning_rate = tf.train.exponential_decay(LEARNING_RATE, global_step,
   #                                           10000, 0.1, staircase=True)
 
-  #train_step = tf.train.MomentumOptimizer(learning_rate, 0.9).minimize(total_loss)
-  train_step = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True).minimize(total_loss)
+  train_step = tf.train.MomentumOptimizer(learning_rate, 0.9).minimize(total_loss)
+  #train_step = tf.train.MomentumOptimizer(learning_rate, 0.9, use_nesterov=True).minimize(total_loss)
   #train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
   #train_step = tf.train.AdamOptimizer(learning_rate).minimize(total_loss, global_step=global_step)
 
@@ -391,12 +361,12 @@ if __name__ == '__main__':
   #for i in range(0, mini_batch):
   #  io.imsave("%s_%d.%s" % ("test_img", i, 'jpeg'), x[i])
 
-  #valid_data_path = "/mnt/ramdisk/valid.tfrecords"
-  valid_data_path = "/home/hhwu/ImageNet/valid.tfrecords"
+  valid_data_path = "/mnt/ramdisk/valid.tfrecords"
+  #valid_data_path = "/home/hhwu/ImageNet/valid.tfrecords"
   train_data_path = []
   for i in xrange(0,101):
-    train_data_path.append("/home/hhwu/ImageNet/tf_train/train_%d.tfrecords" % i)
-    #train_data_path.append("/mnt/ramdisk/tf_data/train_%d.tfrecords" % i)
+    #train_data_path.append("/home/hhwu/ImageNet/tf_train/train_%d.tfrecords" % i)
+    train_data_path.append("/mnt/ramdisk/tf_data/train_%d.tfrecords" % i)
 
 
   with tf.Session() as sess:
@@ -453,10 +423,10 @@ if __name__ == '__main__':
     # Reshape image data into the original shape
     valid_image = tf.reshape(valid_image, [256, 256, 3])
 
-    valid_image = validCropImg(valid_image, mean_img)
-    
+    valid_image = cropImg(valid_image, mean_img)
+
     valid_images, valid_labels = tf.train.batch([valid_image, valid_label], 
-                                                 batch_size=100, capacity=5000, num_threads=4)
+                                                 batch_size=1000, capacity=5000, num_threads=16)
 
 
 
@@ -467,7 +437,7 @@ if __name__ == '__main__':
     sess.run(init_op)
 
     # Restore variables from disk.
-    #saver.restore(sess, "./checkpoint/model_200000.ckpt")
+    #saver.restore(sess, "./checkpoint/model_10000.ckpt")
     #print("Model restored.")
 
 
@@ -495,7 +465,7 @@ if __name__ == '__main__':
     image_iterator = 0
     data = []
     label = []
-    for itr in xrange(450020):
+    for itr in xrange(200000):
       #x, y = batchRead(image_name, class_dict, mean_img, pool)
 
       #print y
@@ -518,7 +488,7 @@ if __name__ == '__main__':
 
       if itr % 1000 == 0:
         valid_accuracy = 0.0
-        for i in range(0,500):
+        for i in range(0,50):
           test_x, test_y = sess.run([valid_images, valid_labels])
           valid_accuracy += correct_sum.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0, learning_rate: LEARNING_RATE})
         print "Validation Accuracy: %f (%.1f/50000)" %  (valid_accuracy/50000, valid_accuracy)
@@ -529,10 +499,6 @@ if __name__ == '__main__':
 
       if itr == 100000:
         LEARNING_RATE = 1e-3
-      if itr == 200000:
-        LEARNING_RATE = 1e-4
-      if itr == 300000:
-        LEARNING_RATE = 1e-5
         #print "   Validation Accuracy: %f" % (test_accuracy/50)
        #test_x, test_y = sess.run([valid_images, valid_labels])
         #print "   Validation Accuracy: %f" % accuracy.eval(feed_dict={X: test_x, Y_: test_y, keep_prob: 1.0})
