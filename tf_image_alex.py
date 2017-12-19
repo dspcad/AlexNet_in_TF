@@ -74,9 +74,16 @@ def cropImg(target_img, mean_img):
   floating_img = target_img - mean_img
   #floating_img = target_img
 
-
   floating_img = tf.image.random_flip_left_right(floating_img)
-  target_img = tf.random_crop(floating_img, [227, 227, 3])
+  sel = np.random.uniform(0,1)
+  if sel <= 0.1:
+    target_img = tf.image.crop_to_bounding_box(floating_img, 14, 14, 227, 227)
+  else:
+    target_img = tf.random_crop(floating_img, [227, 227, 3])
+
+  
+  #floating_img = tf.image.random_flip_left_right(floating_img)
+  #target_img = tf.random_crop(floating_img, [227, 227, 3])
 
   #target_img = tf.image.crop_to_bounding_box(floating_img, 14, 14, 227, 227)
   #target_img = target_img - mean_img
